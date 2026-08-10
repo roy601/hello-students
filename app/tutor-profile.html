@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My batches — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="logo" href="index.html">HelloStudents</a>
+    <nav id="nav-links"></nav>
+  </header>
+
+  <main class="page narrow" id="page">
+    <h1>My tutor page</h1>
+    <p class="muted" id="greeting"></p>
+
+    <!-- ---------- PART A: about you ---------- -->
+    <h2>About you</h2>
+    <form id="about-form" class="form">
+
+      <label for="headline">Headline</label>
+      <input id="headline" type="text" maxlength="120"
+             placeholder="HSC Physics · 8 years · 200+ students to A+" />
+
+      <label for="bio">About you</label>
+      <textarea id="bio" rows="4"
+                placeholder="Tell students how you teach."></textarea>
+
+      <button class="btn" type="submit">Save</button>
+    </form>
+    <p id="about-message" class="message"></p>
+
+    <!-- ---------- PART B: batches ---------- -->
+    <h2>My batches</h2>
+    <p class="lead">
+      Students join a <strong>batch</strong> and pay a
+      <strong>monthly fee</strong>. Open one batch for each group
+      you teach — each can have its own days, time and fee.
+    </p>
+
+    <div id="batch-list" class="batch-list"></div>
+
+    <h3 class="section-title">Open a new batch</h3>
+    <form id="batch-form" class="form">
+
+      <label for="batch-title">Batch name</label>
+      <input id="batch-title" type="text" required maxlength="80"
+             placeholder="HSC Physics — Morning Batch" />
+
+      <label for="batch-subject">Subject</label>
+      <select id="batch-subject" required></select>
+
+      <label>Class days</label>
+      <div id="day-list" class="checkbox-list"></div>
+
+      <div class="two-col">
+        <div>
+          <label for="batch-start">Start time</label>
+          <input id="batch-start" type="time" required value="16:00" />
+        </div>
+        <div>
+          <label for="batch-end">End time</label>
+          <input id="batch-end" type="time" required value="17:30" />
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <label for="batch-fee">Monthly fee (BDT)</label>
+          <input id="batch-fee" type="number" required min="100" step="50"
+                 placeholder="2500" />
+        </div>
+        <div>
+          <label for="batch-seats">Seats</label>
+          <input id="batch-seats" type="number" required min="1" max="100"
+                 value="15" />
+        </div>
+      </div>
+      <p class="hint">
+        Fee is per student, per month — not per hour.
+      </p>
+
+      <label class="checkbox">
+        <input id="batch-online" type="checkbox" />
+        <span>Online batch (no area needed)</span>
+      </label>
+
+      <label for="batch-area">Area</label>
+      <select id="batch-area"></select>
+
+      <label class="checkbox">
+        <input id="batch-publish" type="checkbox" checked />
+        <span>Publish, so students can find this batch</span>
+      </label>
+
+      <button class="btn" type="submit">Open batch</button>
+    </form>
+
+    <p id="batch-message" class="message"></p>
+  </main>
+
+  <script type="module" src="js/tutor-profile.js"></script>
+
+</body>
+</html>

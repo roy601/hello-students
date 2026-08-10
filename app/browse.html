@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find a batch — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="logo" href="index.html">HelloStudents</a>
+    <nav id="nav-links"></nav>
+  </header>
+
+  <main class="page">
+    <h1>Find a batch</h1>
+    <p class="lead">Group classes near you. Fees are per student, per month.</p>
+
+    <section class="filters">
+      <div class="filter">
+        <label for="filter-subject">Subject</label>
+        <select id="filter-subject">
+          <option value="">Any subject</option>
+        </select>
+      </div>
+
+      <div class="filter">
+        <label for="filter-area">Area</label>
+        <select id="filter-area">
+          <option value="">Any area</option>
+        </select>
+      </div>
+
+      <div class="filter">
+        <label for="filter-fee">Max monthly fee</label>
+        <select id="filter-fee">
+          <option value="">Any fee</option>
+          <option value="1000">Up to ৳1,000 / month</option>
+          <option value="2000">Up to ৳2,000 / month</option>
+          <option value="3000">Up to ৳3,000 / month</option>
+          <option value="5000">Up to ৳5,000 / month</option>
+        </select>
+      </div>
+
+      <div class="filter">
+        <label for="filter-name">Batch name</label>
+        <input id="filter-name" type="text" placeholder="Search batches" />
+      </div>
+
+      <button type="button" class="btn-small btn-outline" id="clear-filters">Clear</button>
+    </section>
+
+    <p class="muted" id="result-count"></p>
+
+    <section id="results" class="results"></section>
+  </main>
+
+  <script type="module" src="js/browse.js"></script>
+
+</body>
+</html>

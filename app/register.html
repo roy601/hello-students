@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="logo" href="index.html">HelloStudents</a>
+    <nav id="nav-links"></nav>
+  </header>
+
+  <main class="page narrow">
+    <h1>Create an account</h1>
+
+    <form id="register-form" class="form">
+
+      <label for="full-name">Full name</label>
+      <input id="full-name" type="text" required placeholder="Rifat Hossain" />
+
+      <label for="phone">Phone number</label>
+      <input id="phone" type="tel" placeholder="01712345678" />
+
+      <label for="email">Email</label>
+      <input id="email" type="email" required placeholder="you@example.com" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="6"
+             placeholder="At least 6 characters" />
+
+      <label for="role">I am a</label>
+      <select id="role">
+        <option value="student">Student</option>
+        <option value="tutor">Tutor</option>
+      </select>
+
+      <button class="btn" type="submit">Register</button>
+    </form>
+
+    <p id="message" class="message"></p>
+    <p class="muted">Already have an account? <a href="login.html">Login</a></p>
+  </main>
+
+  <script type="module" src="js/register.js"></script>
+
+</body>
+</html>

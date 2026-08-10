@@ -1,0 +1,332 @@
+/* ============================================================
+   HelloStudents — one small stylesheet for every page.
+   ============================================================ */
+
+:root {
+  --ink: #1a2028;
+  --muted: #5f6b78;
+  --line: #d9e0e7;
+  --bg: #f5f7f9;
+  --white: #ffffff;
+  --brand: #0d6e64;
+  --brand-dark: #0a5750;
+  --error: #b3261e;
+  --success: #0d6e64;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar nav a {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.topbar nav a:hover { color: var(--brand); }
+
+.nav-user {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ---------- page layout ---------- */
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.page.narrow { max-width: 620px; }
+
+h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+h2 { font-size: 20px; margin: 32px 0 8px; }
+h3 { font-size: 18px; margin: 0 0 6px; }
+
+.lead { color: var(--muted); margin: 0 0 24px; }
+.muted { color: var(--muted); font-size: 14px; }
+.hint { color: var(--muted); font-size: 13px; margin: -8px 0 4px; }
+
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0; }
+
+.info ol { padding-left: 20px; color: var(--muted); }
+.info li { margin-bottom: 8px; }
+.info strong { color: var(--ink); }
+
+/* ---------- forms ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.form label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+  border-color: var(--brand);
+}
+
+textarea { resize: vertical; }
+
+/* ---------- checkboxes ---------- */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.checkbox input { width: auto; }
+
+.checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 2px 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+
+.checkbox-list .checkbox { margin-top: 4px; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-block;
+  background: var(--brand);
+  color: var(--white);
+  border: 1px solid var(--brand);
+  border-radius: 4px;
+  padding: 11px 20px;
+  font-size: 15px;
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.btn:hover { background: var(--brand-dark); }
+
+.btn-outline {
+  background: var(--white);
+  color: var(--brand);
+}
+
+.btn-outline:hover { background: #eaf3f2; }
+
+.btn-small {
+  background: var(--brand);
+  color: var(--white);
+  border: 1px solid var(--brand);
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  margin: 0;
+}
+
+.btn-small.btn-outline { background: var(--white); color: var(--brand); }
+
+/* ---------- messages ---------- */
+.message {
+  font-size: 14px;
+  margin: 14px 0 0;
+  min-height: 20px;
+  color: var(--muted);
+}
+
+.message.error { color: var(--error); font-weight: 600; }
+.message.success { color: var(--success); font-weight: 600; }
+
+/* ---------- two fields side by side ---------- */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.two-col label { margin-top: 12px; }
+
+.section-title {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- tutor's own batch list ---------- */
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.batch-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.batch-row h4 { margin: 0 0 4px; font-size: 16px; }
+.batch-row p { margin: 2px 0; }
+
+.batch-row-side { text-align: right; min-width: 110px; }
+.batch-row-side p { margin: 0; }
+.batch-row-side .btn-small { margin-top: 8px; }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1px 8px;
+  vertical-align: middle;
+}
+
+.tag-live {
+  color: var(--brand);
+  background: #eaf3f2;
+  border-color: var(--brand);
+}
+
+/* ---------- browse filters ---------- */
+.filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.filter { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+.filter label { font-size: 13px; font-weight: 600; }
+
+/* ---------- result cards ---------- */
+.results { display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+
+.card-main { flex: 1; }
+.card-main p { margin: 2px 0; }
+
+.card .headline { font-size: 15px; }
+.card .bio { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+.card-side { text-align: right; min-width: 100px; }
+.card-side p { margin: 0; }
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.empty {
+  background: var(--white);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty p { margin: 4px 0; }
+
+/* ---------- small screens ---------- */
+@media (max-width: 600px) {
+  .card, .batch-row { flex-direction: column; gap: 10px; }
+  .card-side, .batch-row-side { text-align: left; }
+  .filter { min-width: 100%; }
+  .two-col { grid-template-columns: 1fr; gap: 0; }
+}

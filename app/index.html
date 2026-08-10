@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="logo" href="index.html">HelloStudents</a>
+    <nav id="nav-links"></nav>
+  </header>
+
+  <main class="page narrow">
+    <h1>Find a batch. Or open one.</h1>
+    <p class="lead">
+      An open marketplace where any tutor can open their own batch,
+      set the monthly fee, and be found by students near them.
+    </p>
+
+    <div class="actions">
+      <a class="btn" href="browse.html">Find a batch</a>
+      <a class="btn btn-outline" href="register.html">Register as a tutor</a>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav } from './js/session.js';
+    renderNav();
+  </script>
+
+</body>
+</html>
