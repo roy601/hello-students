@@ -3,33 +3,169 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HelloStudents</title>
+  <title>HelloStudents — Find a tutor batch near you</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <header class="topbar">
-    <a class="logo" href="index.html">HelloStudents</a>
-    <nav id="nav-links"></nav>
-  </header>
+  <div id="topbar"></div>
 
-  <main class="page narrow">
-    <h1>Find a batch. Or open one.</h1>
-    <p class="lead">
-      An open marketplace where any tutor can open their own batch,
-      set the monthly fee, and be found by students near them.
-    </p>
+  <main>
 
-    <div class="actions">
-      <a class="btn" href="browse.html">Find a batch</a>
-      <a class="btn btn-outline" href="register.html">Register as a tutor</a>
-    </div>
+    <!-- ============ HERO: text left, 3D card deck right ============ -->
+    <section class="hero3d">
+      <div class="hero3d-inner">
+
+        <div class="hero3d-text reveal">
+          <span class="eyebrow">Batches near you · pay by the month</span>
+
+          <h1>Find your batch.<br />Learn from a real teacher.</h1>
+
+          <p class="hero3d-sub">
+            Fixed days, fixed time, one monthly fee. Tutors set their own
+            price — no coaching centre taking a cut.
+          </p>
+
+          <!-- The product is search, so search starts right here -->
+          <form class="hero-search" id="hero-search">
+            <div class="field">
+              <label for="h-subject">Subject</label>
+              <select id="h-subject"><option value="">Any subject</option></select>
+            </div>
+            <div class="field">
+              <label for="h-area">Area</label>
+              <select id="h-area"><option value="">Any area</option></select>
+            </div>
+            <button class="btn btn-lg" type="submit">Find batches</button>
+          </form>
+
+          <div class="stat-strip" id="stat-strip"></div>
+        </div>
+
+        <!-- 3D deck. Cards float at different depths and tilt with
+             the mouse. Filled from the database by js/home.js -->
+        <div class="stage" id="stage">
+          <div class="deck" id="deck"></div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============ SUBJECTS: rotating 3D cube ============ -->
+    <section class="page subjects-band">
+      <div class="subjects-grid">
+
+        <div class="cube-stage reveal">
+          <div class="cube">
+            <div class="cube-face face-front">গণিত<span>Mathematics</span></div>
+            <div class="cube-face face-back">রসায়ন<span>Chemistry</span></div>
+            <div class="cube-face face-right">পদার্থ<span>Physics</span></div>
+            <div class="cube-face face-left">ICT<span>Technology</span></div>
+            <div class="cube-face face-top">ইংরেজি<span>English</span></div>
+            <div class="cube-face face-bottom">জীব<span>Biology</span></div>
+          </div>
+          <div class="cube-shadow"></div>
+        </div>
+
+        <div class="reveal">
+          <h2>Every subject, Class 6 to HSC</h2>
+          <p class="lead mt-sm mb">
+            Tap a subject to see the batches running right now.
+          </p>
+          <div class="chip-row" id="chip-row"></div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============ HOW IT WORKS: 3 steps, not a bullet list ====== -->
+    <section class="page">
+      <h2 class="center">From searching to sitting in class</h2>
+      <div class="steps-3d">
+
+        <div class="step-card reveal">
+          <span class="step-num">1</span>
+          <div class="step-art art-search"></div>
+          <h3>Search</h3>
+          <p class="muted">Filter by subject, area and monthly fee.</p>
+        </div>
+
+        <div class="step-arrow">&rarr;</div>
+
+        <div class="step-card reveal">
+          <span class="step-num">2</span>
+          <div class="step-art art-wallet"></div>
+          <h3>Top up</h3>
+          <p class="muted">Add money with bKash or Nagad, once.</p>
+        </div>
+
+        <div class="step-arrow">&rarr;</div>
+
+        <div class="step-card reveal">
+          <span class="step-num">3</span>
+          <div class="step-art art-seat"></div>
+          <h3>Take your seat</h3>
+          <p class="muted">Join in one tap and start the same week.</p>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============ TRUST ROW ============ -->
+    <section class="page">
+      <div class="trust-row reveal">
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 4.4-3 8.3-7 10-4-1.7-7-5.6-7-10V6l7-3z"/>
+            <path d="M9 12l2 2 4-4" class="tick"/>
+          </svg>
+          <div>
+            <h4>Checked tutors only</h4>
+            <p class="muted">Every tutor is approved before a batch goes live.</p>
+          </div>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
+            <rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/>
+            <path d="M2.5 10h19" class="tick"/>
+          </svg>
+          <div>
+            <h4>Every taka recorded</h4>
+            <p class="muted">Your wallet shows exactly where the money went.</p>
+          </div>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3.5 2" class="tick"/>
+          </svg>
+          <div>
+            <h4>Live class and class chat</h4>
+            <p class="muted">Join from home, and ask questions between classes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============ FINAL CALL ============ -->
+    <section class="page">
+      <div class="cta-band reveal">
+        <h2>Teaching already? Open your first batch tonight.</h2>
+        <p>Set your days, your seats and your monthly fee. Keep 85%.</p>
+        <div class="row center-row mt">
+          <a class="btn btn-lg" href="register.html">Start teaching</a>
+          <a class="btn btn-lg btn-outline" href="browse.html">Browse batches</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <script type="module">
-    import { renderNav } from './js/session.js';
-    renderNav();
-  </script>
+  <script type="module" src="js/home.js"></script>
 
 </body>
 </html>

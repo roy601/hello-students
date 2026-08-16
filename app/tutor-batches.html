@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My batches — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
+
+  <main class="page mid">
+
+    <div id="status-area" class="mb-md"></div>
+
+    <section id="batch-list" class="stack-sm mb-md"></section>
+
+    <section class="card">
+      <h2 class="mb">Open a new batch</h2>
+
+      <form id="batch-form" class="form">
+
+        <div class="field">
+          <label for="b-title">Batch name</label>
+          <input id="b-title" type="text" required maxlength="80"
+                 placeholder="HSC Physics — Morning Batch" />
+        </div>
+
+        <div class="field">
+          <label for="b-subject">Subject</label>
+          <select id="b-subject" required></select>
+        </div>
+
+        <div class="field">
+          <label for="b-desc">Description</label>
+          <textarea id="b-desc" rows="3"
+                    placeholder="What will you cover in this batch?"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Class days</label>
+          <div class="day-picker" id="day-picker"></div>
+          <p class="hint">Tap the days this batch meets.</p>
+        </div>
+
+        <div class="pair">
+          <div class="field">
+            <label for="b-start">Start time</label>
+            <input id="b-start" type="time" required value="16:00" />
+          </div>
+          <div class="field">
+            <label for="b-end">End time</label>
+            <input id="b-end" type="time" required value="17:30" />
+          </div>
+        </div>
+
+        <div class="pair">
+          <div class="field">
+            <label for="b-fee">Monthly fee (taka)</label>
+            <input id="b-fee" type="number" required min="100" step="50"
+                   placeholder="2500" />
+            <p class="hint">Per student, per month — not per hour.</p>
+          </div>
+          <div class="field">
+            <label for="b-seats">Number of seats</label>
+            <input id="b-seats" type="number" required min="1" max="100" value="15" />
+          </div>
+        </div>
+
+        <label class="check">
+          <input id="b-online" type="checkbox" />
+          <span>This is an online batch (no area needed)</span>
+        </label>
+
+        <div class="field">
+          <label for="b-area">Area</label>
+          <select id="b-area"></select>
+        </div>
+
+        <label class="check">
+          <input id="b-publish" type="checkbox" checked />
+          <span>Publish now, so students can find it</span>
+        </label>
+
+        <button class="btn" type="submit" id="batch-btn">Open batch</button>
+      </form>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/tutor-batches.js"></script>
+
+</body>
+</html>

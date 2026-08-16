@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutor approvals — HelloStudents Admin</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
+
+  <main class="page mid">
+
+    <div class="field mb">
+      <label for="f-status">Show</label>
+      <select id="f-status">
+        <option value="pending">Waiting for approval</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="all">Everyone</option>
+      </select>
+    </div>
+
+    <section id="tutors" class="stack-sm"></section>
+
+  </main>
+
+  <script type="module" src="js/admin-tutors.js"></script>
+
+</body>
+</html>

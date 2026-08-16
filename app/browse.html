@@ -8,52 +8,67 @@
 </head>
 <body>
 
-  <header class="topbar">
-    <a class="logo" href="index.html">HelloStudents</a>
-    <nav id="nav-links"></nav>
-  </header>
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
 
   <main class="page">
-    <h1>Find a batch</h1>
-    <p class="lead">Group classes near you. Fees are per student, per month.</p>
 
-    <section class="filters">
-      <div class="filter">
-        <label for="filter-subject">Subject</label>
-        <select id="filter-subject">
-          <option value="">Any subject</option>
-        </select>
+    <section class="filters mb">
+      <div class="field">
+        <label for="f-subject">Subject</label>
+        <select id="f-subject"><option value="">Any subject</option></select>
       </div>
 
-      <div class="filter">
-        <label for="filter-area">Area</label>
-        <select id="filter-area">
-          <option value="">Any area</option>
-        </select>
+      <div class="field">
+        <label for="f-area">Area</label>
+        <select id="f-area"><option value="">Any area</option></select>
       </div>
 
-      <div class="filter">
-        <label for="filter-fee">Max monthly fee</label>
-        <select id="filter-fee">
+      <div class="field">
+        <label for="f-fee">Monthly fee up to</label>
+        <select id="f-fee">
           <option value="">Any fee</option>
-          <option value="1000">Up to ৳1,000 / month</option>
-          <option value="2000">Up to ৳2,000 / month</option>
-          <option value="3000">Up to ৳3,000 / month</option>
-          <option value="5000">Up to ৳5,000 / month</option>
+          <option value="1000">&#2547;1,000</option>
+          <option value="2000">&#2547;2,000</option>
+          <option value="3000">&#2547;3,000</option>
+          <option value="5000">&#2547;5,000</option>
         </select>
       </div>
 
-      <div class="filter">
-        <label for="filter-name">Batch name</label>
-        <input id="filter-name" type="text" placeholder="Search batches" />
+      <div class="field">
+        <label for="f-mode">Class type</label>
+        <select id="f-mode">
+          <option value="">Online or in person</option>
+          <option value="online">Online only</option>
+          <option value="person">In person only</option>
+        </select>
       </div>
 
-      <button type="button" class="btn-small btn-outline" id="clear-filters">Clear</button>
+      <div class="field">
+        <label for="f-search">Search</label>
+        <input id="f-search" type="search" placeholder="Batch or tutor name" />
+      </div>
+
+      <div class="field">
+        <label for="f-sort">Sort by</label>
+        <select id="f-sort">
+          <option value="fee">Lowest fee</option>
+          <option value="rating">Best rated</option>
+          <option value="new">Newest</option>
+        </select>
+      </div>
     </section>
 
-    <p class="muted" id="result-count"></p>
+    <div class="row mb">
+      <p class="muted" id="result-count"></p>
+      <div class="spacer"></div>
+      <button class="btn btn-outline btn-sm" id="clear-filters" type="button">
+        Clear filters
+      </button>
+    </div>
 
-    <section id="results" class="results"></section>
+    <section id="results" class="stack-sm"></section>
+
   </main>
 
   <script type="module" src="js/browse.js"></script>

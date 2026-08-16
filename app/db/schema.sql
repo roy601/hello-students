@@ -1,27 +1,33 @@
 -- ============================================================
---  HelloStudents — database schema
+--  HelloStudents — full database
 --  Run this whole file in: Supabase Dashboard > SQL Editor
---
---  Safe to run again, and safe to run over the older
---  (hourly rate) version — step 5 cleans that up.
+--  Safe to run again.
 -- ============================================================
---  5 tables:
---    profiles         one row per user (name, phone, role)
---    subjects         list of subjects  (reference data)
---    areas            list of areas     (reference data)
---    tutor_profiles   extra info for users who are tutors
---    batches          a group class: days, time, monthly fee
+--  12 tables
+--    profiles           one row per user (name, phone, role)
+--    subjects           list of subjects            (fixed list)
+--    areas              list of areas               (fixed list)
+--    tutor_profiles     tutor details + approval status
+--    tutor_credentials  certificates a tutor uploads for checking
+--    batches            a group class with a monthly fee
+--    enrolments         a student joined a batch
+--    wallets            how much money a student has on the site
+--    transactions       every money movement, never edited
+--    reviews            a student rates a tutor
+--    notifications      alerts shown in the bell menu
+--    messages           the chat inside one batch (Part 7)
 --
---  PRICING: a tutor does NOT charge by the hour. They open a
---  BATCH that runs on fixed days, and each student pays a
---  MONTHLY FEE to join it. This is how coaching works in
---  Bangladesh, so it is how the database works here.
+--  PRICING: tutors do not charge per hour. They open a BATCH
+--  that runs on fixed days, and each student pays a MONTHLY
+--  FEE to join it. This is how coaching works in Bangladesh.
 -- ============================================================
 
 
--- ------------------------------------------------------------
--- 1. PROFILES  — extends Supabase's built-in auth.users table
--- ------------------------------------------------------------
+-- ============================================================
+--  PART 1 — TABLES
+-- ============================================================
+
+-- ---- 1. profiles -------------------------------------------
 create table if not exists profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   full_name  text not null,
@@ -29,13 +35,11 @@ create table if not exists profiles (
   role       text not null default 'student',
   created_at timestamptz not null default now(),
 
-  constraint role_must_be_valid check (role in ('student', 'tutor'))
+  constraint role_must_be_valid check (role in ('student', 'tutor', 'admin'))
 );
 
 
--- ------------------------------------------------------------
--- 2. SUBJECTS — fixed list, tutors pick from it (not free text)
--- ------------------------------------------------------------
+-- ---- 2. subjects -------------------------------------------
 create table if not exists subjects (
   id          bigserial primary key,
   name_en     text not null,
@@ -46,9 +50,7 @@ create table if not exists subjects (
 );
 
 
--- ------------------------------------------------------------
--- 3. AREAS — where a batch is held
--- ------------------------------------------------------------
+-- ---- 3. areas ----------------------------------------------
 create table if not exists areas (
   id      bigserial primary key,
   name_en text not null,
@@ -59,52 +61,48 @@ create table if not exists areas (
 );
 
 
--- ------------------------------------------------------------
--- 4. TUTOR_PROFILES — only for users whose role is 'tutor'
---    Just who the tutor is. No price here: the price lives
---    on each batch, because different batches cost different
---    amounts.
--- ------------------------------------------------------------
+-- ---- 4. tutor_profiles -------------------------------------
+--  status: a new tutor is 'pending' until an admin approves.
+--  Only approved tutors can publish batches.
 create table if not exists tutor_profiles (
-  id         uuid primary key references profiles (id) on delete cascade,
-  headline   text,
-  bio        text,
-  created_at timestamptz not null default now()
+  id                uuid primary key references profiles (id) on delete cascade,
+  headline          text,
+  bio               text,
+  years_experience  integer not null default 0,
+  area_id           bigint references areas (id),
+  status            text not null default 'pending',
+  verified_level    text not null default 'none',
+  rating_avg        numeric(3,2) not null default 0,
+  rating_count      integer not null default 0,
+  students_taught   integer not null default 0,
+  reject_reason     text,
+  created_at        timestamptz not null default now(),
+
+  constraint status_must_be_valid
+    check (status in ('pending', 'approved', 'rejected', 'suspended')),
+  constraint verified_level_must_be_valid
+    check (verified_level in ('none', 'id_verified', 'certificate_verified')),
+  constraint experience_must_be_sensible
+    check (years_experience between 0 and 60)
 );
 
 
--- ------------------------------------------------------------
--- 5. CLEAN-UP — only does something if you ran the older
---    version of this file. On a new project it does nothing.
---
---    This runs AFTER the tables above on purpose:
---      * "drop policy if exists" still fails if the TABLE is
---        missing, so the table has to exist first
---      * a column cannot be dropped while a policy mentions
---        it, so the old policies have to go before the columns
--- ------------------------------------------------------------
+-- ---- 5. tutor_credentials ----------------------------------
+create table if not exists tutor_credentials (
+  id           bigserial primary key,
+  tutor_id     uuid not null references tutor_profiles (id) on delete cascade,
+  title        text not null,          -- 'BSc in EEE'
+  institution  text not null,          -- 'BUET'
+  year_awarded integer,
+  status       text not null default 'pending',
+  created_at   timestamptz not null default now(),
 
--- old policies first
-drop policy if exists "read published tutors"    on tutor_profiles;
-drop policy if exists "tutor creates own profile" on tutor_profiles;
-drop policy if exists "tutor updates own profile" on tutor_profiles;
-
--- old table (its policies go with it)
-drop table if exists tutor_subjects;
-
--- old columns: pricing and location moved to `batches`
-alter table tutor_profiles drop column if exists hourly_rate;
-alter table tutor_profiles drop column if exists area_id;
-alter table tutor_profiles drop column if exists teaches_online;
-alter table tutor_profiles drop column if exists is_published;
+  constraint credential_status_must_be_valid
+    check (status in ('pending', 'verified', 'rejected'))
+);
 
 
--- ------------------------------------------------------------
--- 6. BATCHES — one group class, with its monthly fee
---    Example: "HSC Physics — Morning Batch"
---             Sun, Tue, Thu · 8:00–9:30 AM
---             ৳2,500 per month · 15 seats · Dhanmondi
--- ------------------------------------------------------------
+-- ---- 6. batches --------------------------------------------
 create table if not exists batches (
   id           bigserial primary key,
   tutor_id     uuid   not null references tutor_profiles (id) on delete cascade,
@@ -112,38 +110,208 @@ create table if not exists batches (
   area_id      bigint references areas (id),
 
   title        text not null,
-  days         text not null,              -- e.g. 'Sun, Tue, Thu'
+  description  text,
+  days         text not null,              -- 'Sun, Tue, Thu'
   start_time   time not null,
   end_time     time not null,
-  monthly_fee  integer not null,           -- whole taka per student per month
+  monthly_fee  integer not null,           -- whole taka, per student, per month
   seat_limit   integer not null default 10,
+  seats_taken  integer not null default 0,
   is_online    boolean not null default false,
   is_published boolean not null default false,
   created_at   timestamptz not null default now(),
 
   constraint fee_must_be_at_least_100 check (monthly_fee >= 100),
-  constraint seats_must_be_sensible    check (seat_limit between 1 and 100),
-  constraint must_end_after_it_starts  check (end_time > start_time)
+  constraint seats_must_be_sensible   check (seat_limit between 1 and 100),
+  constraint seats_taken_is_sensible  check (seats_taken >= 0),
+  constraint must_end_after_it_starts check (end_time > start_time)
 );
 
 create index if not exists batches_subject_idx on batches (subject_id);
 create index if not exists batches_area_idx    on batches (area_id);
+create index if not exists batches_tutor_idx   on batches (tutor_id);
+
+
+-- ---- 7. enrolments -----------------------------------------
+create table if not exists enrolments (
+  id          bigserial primary key,
+  batch_id    bigint not null references batches (id) on delete cascade,
+  student_id  uuid   not null references profiles (id) on delete cascade,
+  fee_paid    integer not null,
+  status      text not null default 'active',
+  created_at  timestamptz not null default now(),
+
+  unique (batch_id, student_id),          -- cannot join the same batch twice
+  constraint enrolment_status_must_be_valid check (status in ('active', 'left'))
+);
+
+create index if not exists enrolments_student_idx on enrolments (student_id);
+create index if not exists enrolments_batch_idx   on enrolments (batch_id);
+
+
+-- ---- 8. wallets --------------------------------------------
+create table if not exists wallets (
+  user_id    uuid primary key references profiles (id) on delete cascade,
+  balance    integer not null default 0,       -- whole taka
+  updated_at timestamptz not null default now(),
+
+  constraint balance_can_never_be_negative check (balance >= 0)
+);
+
+
+-- ---- 9. transactions ---------------------------------------
+--  A history of every money movement. Rows are never changed
+--  or deleted, so the balance can always be checked.
+create table if not exists transactions (
+  id          bigserial primary key,
+  user_id     uuid not null references profiles (id) on delete cascade,
+  kind        text not null,
+  amount      integer not null,        -- + money in, - money out
+  note        text,
+  batch_id    bigint references batches (id) on delete set null,
+  created_at  timestamptz not null default now(),
+
+  constraint kind_must_be_valid
+    check (kind in ('top_up', 'enrol_payment', 'tutor_earning', 'refund'))
+);
+
+create index if not exists transactions_user_idx on transactions (user_id, created_at desc);
+
+
+-- ---- 10. reviews -------------------------------------------
+create table if not exists reviews (
+  id           bigserial primary key,
+  enrolment_id bigint not null unique references enrolments (id) on delete cascade,
+  batch_id     bigint not null references batches (id) on delete cascade,
+  tutor_id     uuid   not null references tutor_profiles (id) on delete cascade,
+  student_id   uuid   not null references profiles (id) on delete cascade,
+  rating       integer not null,
+  comment      text,
+  created_at   timestamptz not null default now(),
+
+  constraint rating_must_be_1_to_5 check (rating between 1 and 5)
+);
+
+create index if not exists reviews_tutor_idx on reviews (tutor_id);
+
+
+-- ---- 11. notifications -------------------------------------
+create table if not exists notifications (
+  id         bigserial primary key,
+  user_id    uuid not null references profiles (id) on delete cascade,
+  title      text not null,
+  body       text,
+  link       text,
+  is_read    boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_user_idx
+  on notifications (user_id, is_read, created_at desc);
 
 
 -- ============================================================
---  SEED DATA — so the app has something to show immediately
+--  PART 2 — UPGRADE AN OLDER DATABASE
+--
+--  IMPORTANT: "create table if not exists" above does nothing
+--  when the table is already there — which means it does NOT
+--  add new columns to it. So every column, constraint and
+--  policy added after the first version is repeated here as
+--  an "alter". On a brand new database this part changes
+--  nothing, and it is safe to run as many times as you like.
+--
+--  It runs AFTER the tables on purpose:
+--    * "drop policy if exists" still fails if the TABLE is
+--      missing, so the tables must exist first
+--    * a column cannot be dropped while a policy mentions it
 -- ============================================================
 
+-- ---- 2a. old policies must go first ------------------------
+--  "tutor creates own batch" is the important one. The new
+--  rule below only lets an APPROVED tutor create a batch, but
+--  policies are combined with OR, so leaving the old rule in
+--  place would let anyone skip the approval check.
+drop policy if exists "read published tutors"     on tutor_profiles;
+drop policy if exists "tutor creates own profile" on tutor_profiles;
+drop policy if exists "tutor updates own profile" on tutor_profiles;
+drop policy if exists "tutor creates own batch"   on batches;
+
+
+-- ---- 2b. table and columns that are no longer used ---------
+drop table if exists tutor_subjects;
+
+alter table tutor_profiles drop column if exists hourly_rate;
+alter table tutor_profiles drop column if exists teaches_online;
+alter table tutor_profiles drop column if exists is_published;
+
+
+-- ---- 2c. profiles: allow the 'admin' role ------------------
+--  The first version only allowed 'student' and 'tutor', so
+--  making yourself an admin would be refused.
+alter table profiles drop constraint if exists role_must_be_valid;
+alter table profiles add  constraint role_must_be_valid
+  check (role in ('student', 'tutor', 'admin'));
+
+
+-- ---- 2d. tutor_profiles: columns added later ---------------
+alter table tutor_profiles add column if not exists years_experience integer      not null default 0;
+alter table tutor_profiles add column if not exists area_id          bigint       references areas (id);
+alter table tutor_profiles add column if not exists status           text         not null default 'pending';
+alter table tutor_profiles add column if not exists verified_level   text         not null default 'none';
+alter table tutor_profiles add column if not exists rating_avg       numeric(3,2) not null default 0;
+alter table tutor_profiles add column if not exists rating_count     integer      not null default 0;
+alter table tutor_profiles add column if not exists students_taught  integer      not null default 0;
+alter table tutor_profiles add column if not exists reject_reason    text;
+
+alter table tutor_profiles drop constraint if exists status_must_be_valid;
+alter table tutor_profiles add  constraint status_must_be_valid
+  check (status in ('pending', 'approved', 'rejected', 'suspended'));
+
+alter table tutor_profiles drop constraint if exists verified_level_must_be_valid;
+alter table tutor_profiles add  constraint verified_level_must_be_valid
+  check (verified_level in ('none', 'id_verified', 'certificate_verified'));
+
+alter table tutor_profiles drop constraint if exists experience_must_be_sensible;
+alter table tutor_profiles add  constraint experience_must_be_sensible
+  check (years_experience between 0 and 60);
+
+
+-- ---- 2e. batches: columns added later ----------------------
+alter table batches add column if not exists description text;
+alter table batches add column if not exists seats_taken integer not null default 0;
+
+alter table batches drop constraint if exists seats_taken_is_sensible;
+alter table batches add  constraint seats_taken_is_sensible check (seats_taken >= 0);
+
+
+-- ---- 2f. make seats_taken agree with the real enrolments ---
+--  Only matters if a batch already had students before the
+--  seats_taken column existed.
+update batches b
+   set seats_taken = (select count(*) from enrolments e where e.batch_id = b.id)
+ where b.seats_taken <> (select count(*) from enrolments e where e.batch_id = b.id);
+
+
+-- ============================================================
+--  PART 3 — SEED DATA
+-- ============================================================
 insert into subjects (name_en, name_bn, grade_level) values
-  ('Mathematics',        'গণিত',                'Class 9'),
-  ('Mathematics',        'গণিত',                'Class 10'),
-  ('Higher Mathematics', 'উচ্চতর গণিত',          'Class 10'),
-  ('Physics 1st Paper',  'পদার্থবিজ্ঞান ১ম পত্র', 'HSC'),
-  ('Physics 2nd Paper',  'পদার্থবিজ্ঞান ২য় পত্র', 'HSC'),
-  ('Chemistry',          'রসায়ন',               'HSC'),
-  ('Biology',            'জীববিজ্ঞান',           'HSC'),
-  ('English',            'ইংরেজি',              'Class 9'),
-  ('ICT',                'তথ্য ও যোগাযোগ প্রযুক্তি', 'HSC')
+  ('Mathematics',        'গণিত',                  'Class 6'),
+  ('Mathematics',        'গণিত',                  'Class 7'),
+  ('Mathematics',        'গণিত',                  'Class 8'),
+  ('Mathematics',        'গণিত',                  'Class 9'),
+  ('Mathematics',        'গণিত',                  'Class 10'),
+  ('Higher Mathematics', 'উচ্চতর গণিত',            'Class 10'),
+  ('Physics 1st Paper',  'পদার্থবিজ্ঞান ১ম পত্র',   'HSC'),
+  ('Physics 2nd Paper',  'পদার্থবিজ্ঞান ২য় পত্র',   'HSC'),
+  ('Chemistry 1st Paper','রসায়ন ১ম পত্র',          'HSC'),
+  ('Chemistry 2nd Paper','রসায়ন ২য় পত্র',          'HSC'),
+  ('Biology',            'জীববিজ্ঞান',             'HSC'),
+  ('English',            'ইংরেজি',                'Class 9'),
+  ('English',            'ইংরেজি',                'HSC'),
+  ('ICT',                'তথ্য ও যোগাযোগ প্রযুক্তি',  'HSC'),
+  ('Accounting',         'হিসাববিজ্ঞান',            'HSC'),
+  ('Bangla 1st Paper',   'বাংলা ১ম পত্র',           'HSC')
 on conflict do nothing;
 
 insert into areas (name_en, name_bn, city) values
@@ -152,90 +320,587 @@ insert into areas (name_en, name_bn, city) values
   ('Uttara',       'উত্তরা',      'Dhaka'),
   ('Mirpur',       'মিরপুর',      'Dhaka'),
   ('Bashundhara',  'বসুন্ধরা',     'Dhaka'),
+  ('Banani',       'বনানী',       'Dhaka'),
+  ('Motijheel',    'মতিঝিল',      'Dhaka'),
   ('Agrabad',      'আগ্রাবাদ',     'Chattogram'),
-  ('Nasirabad',    'নাসিরাবাদ',    'Chattogram')
+  ('Nasirabad',    'নাসিরাবাদ',    'Chattogram'),
+  ('Khulshi',      'খুলশী',       'Chattogram')
 on conflict do nothing;
 
 
 -- ============================================================
---  ROW LEVEL SECURITY (RLS)
---  RLS decides which rows a user may see or change. Without it,
---  anyone with the public key could edit anyone's data.
---  auth.uid() is the id of the logged-in user.
+--  PART 4 — DATABASE FUNCTIONS
+--  These run inside the database. They are used for actions
+--  that must happen completely or not at all, such as paying
+--  for a batch (money out, seat taken, both together).
 -- ============================================================
 
-alter table profiles       enable row level security;
-alter table subjects       enable row level security;
-alter table areas          enable row level security;
-alter table tutor_profiles enable row level security;
-alter table batches        enable row level security;
+-- ---- Every new user gets a wallet automatically ------------
+create or replace function create_wallet_for_new_profile()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  insert into wallets (user_id, balance)
+  values (new.id, 0)
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_profile_created on profiles;
+create trigger on_profile_created
+  after insert on profiles
+  for each row execute function create_wallet_for_new_profile();
 
 
--- --- profiles -------------------------------------------------
+-- ---- Add money to your own wallet --------------------------
+--  DEMO ONLY. A real site would confirm the payment with
+--  bKash or Nagad on a server before calling this.
+create or replace function top_up_wallet(amount integer)
+returns integer
+language plpgsql
+security definer
+as $$
+declare
+  new_balance integer;
+begin
+  if amount < 100 or amount > 20000 then
+    raise exception 'Amount must be between 100 and 20000 taka';
+  end if;
+
+  update wallets
+     set balance = balance + amount, updated_at = now()
+   where user_id = auth.uid()
+  returning balance into new_balance;
+
+  if new_balance is null then
+    raise exception 'Wallet not found';
+  end if;
+
+  insert into transactions (user_id, kind, amount, note)
+  values (auth.uid(), 'top_up', amount, 'Added money to wallet');
+
+  insert into notifications (user_id, title, body, link)
+  values (auth.uid(),
+          'Money added',
+          amount || ' taka added. Your balance is now ' || new_balance || ' taka.',
+          'student-wallet.html');
+
+  return new_balance;
+end;
+$$;
+
+
+-- ---- Join a batch ------------------------------------------
+--  Everything below happens together, or nothing happens:
+--    check seats -> check balance -> take money -> give seat
+--    -> pay the tutor -> tell both people
+create or replace function enrol_in_batch(p_batch_id bigint)
+returns text
+language plpgsql
+security definer
+as $$
+declare
+  v_student   uuid := auth.uid();
+  v_batch     batches%rowtype;
+  v_balance   integer;
+  v_student_name text;
+begin
+  if v_student is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  -- lock this batch row so two students cannot take the last seat
+  select * into v_batch from batches where id = p_batch_id for update;
+
+  if not found then
+    raise exception 'Batch not found';
+  end if;
+  if not v_batch.is_published then
+    raise exception 'This batch is not open yet';
+  end if;
+  if v_batch.seats_taken >= v_batch.seat_limit then
+    raise exception 'This batch is full';
+  end if;
+  if exists (select 1 from enrolments
+              where batch_id = p_batch_id and student_id = v_student) then
+    raise exception 'You have already joined this batch';
+  end if;
+
+  select balance into v_balance from wallets where user_id = v_student for update;
+
+  if v_balance is null then
+    raise exception 'Wallet not found';
+  end if;
+  if v_balance < v_batch.monthly_fee then
+    raise exception 'Not enough balance. You need % taka.', v_batch.monthly_fee;
+  end if;
+
+  -- take the money from the student
+  update wallets
+     set balance = balance - v_batch.monthly_fee, updated_at = now()
+   where user_id = v_student;
+
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_student, 'enrol_payment', -v_batch.monthly_fee,
+          'Joined ' || v_batch.title, p_batch_id);
+
+  -- give the seat
+  insert into enrolments (batch_id, student_id, fee_paid)
+  values (p_batch_id, v_student, v_batch.monthly_fee);
+
+  update batches set seats_taken = seats_taken + 1 where id = p_batch_id;
+  update tutor_profiles set students_taught = students_taught + 1
+   where id = v_batch.tutor_id;
+
+  -- pay the tutor (the site keeps 15%)
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_batch.tutor_id, 'tutor_earning',
+          round(v_batch.monthly_fee * 0.85),
+          'A student joined ' || v_batch.title, p_batch_id);
+
+  update wallets
+     set balance = balance + round(v_batch.monthly_fee * 0.85), updated_at = now()
+   where user_id = v_batch.tutor_id;
+
+  -- tell both people
+  select full_name into v_student_name from profiles where id = v_student;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_student, 'You joined a batch',
+          'You joined ' || v_batch.title || '. See it in My Classes.',
+          'student-dashboard.html');
+
+  insert into notifications (user_id, title, body, link)
+  values (v_batch.tutor_id, 'New student',
+          v_student_name || ' joined ' || v_batch.title || '.',
+          'tutor-students.html');
+
+  return 'ok';
+end;
+$$;
+
+
+-- ---- Keep the tutor rating up to date ----------------------
+create or replace function refresh_tutor_rating()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  v_tutor uuid := coalesce(new.tutor_id, old.tutor_id);
+begin
+  update tutor_profiles
+     set rating_avg   = coalesce((select round(avg(rating), 2)
+                                    from reviews where tutor_id = v_tutor), 0),
+         rating_count = (select count(*) from reviews where tutor_id = v_tutor)
+   where id = v_tutor;
+  return null;
+end;
+$$;
+
+drop trigger if exists on_review_changed on reviews;
+create trigger on_review_changed
+  after insert or update or delete on reviews
+  for each row execute function refresh_tutor_rating();
+
+
+-- ---- Tell a tutor when an admin decides --------------------
+create or replace function notify_tutor_of_decision()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.status is distinct from old.status then
+    if new.status = 'approved' then
+      insert into notifications (user_id, title, body, link)
+      values (new.id, 'Your account is approved',
+              'You can now publish batches and take students.',
+              'tutor-batches.html');
+    elsif new.status = 'rejected' then
+      insert into notifications (user_id, title, body, link)
+      values (new.id, 'Your application needs changes',
+              coalesce(new.reject_reason, 'Please check your profile and apply again.'),
+              'tutor-profile.html');
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_tutor_status_changed on tutor_profiles;
+create trigger on_tutor_status_changed
+  after update on tutor_profiles
+  for each row execute function notify_tutor_of_decision();
+
+
+-- ============================================================
+--  PART 5 — ROW LEVEL SECURITY
+--  Rules stored inside the database that decide who may see
+--  or change each row. auth.uid() is the logged-in user.
+-- ============================================================
+
+alter table profiles          enable row level security;
+alter table subjects          enable row level security;
+alter table areas             enable row level security;
+alter table tutor_profiles    enable row level security;
+alter table tutor_credentials enable row level security;
+alter table batches           enable row level security;
+alter table enrolments        enable row level security;
+alter table wallets           enable row level security;
+alter table transactions      enable row level security;
+alter table reviews           enable row level security;
+alter table notifications     enable row level security;
+
+
+-- ---- helper: is the logged-in user an admin? ---------------
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+
+-- ---- profiles ----------------------------------------------
 drop policy if exists "anyone can read profiles" on profiles;
 create policy "anyone can read profiles"
-  on profiles for select
-  using (true);
+  on profiles for select using (true);
 
 drop policy if exists "user creates own profile" on profiles;
 create policy "user creates own profile"
-  on profiles for insert
-  with check (auth.uid() = id);
+  on profiles for insert with check (auth.uid() = id);
 
 drop policy if exists "user updates own profile" on profiles;
 create policy "user updates own profile"
-  on profiles for update
-  using (auth.uid() = id);
+  on profiles for update using (auth.uid() = id);
 
 
--- --- subjects & areas (read-only reference data) --------------
+-- ---- subjects & areas (fixed lists, read only) -------------
 drop policy if exists "anyone can read subjects" on subjects;
 create policy "anyone can read subjects"
-  on subjects for select
-  using (true);
+  on subjects for select using (true);
 
 drop policy if exists "anyone can read areas" on areas;
 create policy "anyone can read areas"
-  on areas for select
-  using (true);
+  on areas for select using (true);
 
 
--- --- tutor_profiles -------------------------------------------
+-- ---- tutor_profiles ----------------------------------------
 drop policy if exists "anyone can read tutor profiles" on tutor_profiles;
 create policy "anyone can read tutor profiles"
-  on tutor_profiles for select
-  using (true);
+  on tutor_profiles for select using (true);
 
-drop policy if exists "tutor creates own profile" on tutor_profiles;
-create policy "tutor creates own profile"
-  on tutor_profiles for insert
-  with check (auth.uid() = id);
+drop policy if exists "tutor creates own tutor profile" on tutor_profiles;
+create policy "tutor creates own tutor profile"
+  on tutor_profiles for insert with check (auth.uid() = id);
 
-drop policy if exists "tutor updates own profile" on tutor_profiles;
-create policy "tutor updates own profile"
-  on tutor_profiles for update
-  using (auth.uid() = id);
+drop policy if exists "tutor or admin updates tutor profile" on tutor_profiles;
+create policy "tutor or admin updates tutor profile"
+  on tutor_profiles for update using (auth.uid() = id or is_admin());
 
 
--- --- batches --------------------------------------------------
--- Students see published batches. A tutor also sees their own
--- unpublished drafts.
+-- ---- tutor_credentials -------------------------------------
+drop policy if exists "read own or admin reads all credentials" on tutor_credentials;
+create policy "read own or admin reads all credentials"
+  on tutor_credentials for select using (auth.uid() = tutor_id or is_admin());
+
+drop policy if exists "tutor adds own credential" on tutor_credentials;
+create policy "tutor adds own credential"
+  on tutor_credentials for insert with check (auth.uid() = tutor_id);
+
+drop policy if exists "tutor deletes own credential" on tutor_credentials;
+create policy "tutor deletes own credential"
+  on tutor_credentials for delete using (auth.uid() = tutor_id);
+
+drop policy if exists "admin updates credential" on tutor_credentials;
+create policy "admin updates credential"
+  on tutor_credentials for update using (is_admin());
+
+
+-- ---- batches -----------------------------------------------
+--  Students only see published batches from APPROVED tutors.
 drop policy if exists "read published batches" on batches;
 create policy "read published batches"
   on batches for select
-  using (is_published = true or auth.uid() = tutor_id);
+  using (
+    auth.uid() = tutor_id
+    or is_admin()
+    or (
+      is_published = true
+      and exists (select 1 from tutor_profiles t
+                   where t.id = batches.tutor_id and t.status = 'approved')
+    )
+  );
 
-drop policy if exists "tutor creates own batch" on batches;
-create policy "tutor creates own batch"
+--  Only an APPROVED tutor may create a batch.
+drop policy if exists "approved tutor creates own batch" on batches;
+create policy "approved tutor creates own batch"
   on batches for insert
-  with check (auth.uid() = tutor_id);
+  with check (
+    auth.uid() = tutor_id
+    and exists (select 1 from tutor_profiles t
+                 where t.id = auth.uid() and t.status = 'approved')
+  );
 
 drop policy if exists "tutor updates own batch" on batches;
 create policy "tutor updates own batch"
-  on batches for update
-  using (auth.uid() = tutor_id);
+  on batches for update using (auth.uid() = tutor_id);
 
 drop policy if exists "tutor deletes own batch" on batches;
 create policy "tutor deletes own batch"
-  on batches for delete
-  using (auth.uid() = tutor_id);
+  on batches for delete using (auth.uid() = tutor_id);
+
+
+-- ---- enrolments --------------------------------------------
+--  A student sees their own. A tutor sees who joined their batch.
+drop policy if exists "student or tutor reads enrolment" on enrolments;
+create policy "student or tutor reads enrolment"
+  on enrolments for select
+  using (
+    auth.uid() = student_id
+    or is_admin()
+    or exists (select 1 from batches b
+                where b.id = enrolments.batch_id and b.tutor_id = auth.uid())
+  );
+--  No insert policy on purpose: joining only happens through
+--  the enrol_in_batch() function, so money and seats stay correct.
+
+
+-- ---- wallets -----------------------------------------------
+drop policy if exists "read own wallet" on wallets;
+create policy "read own wallet"
+  on wallets for select using (auth.uid() = user_id);
+--  No insert or update policy: only the database functions
+--  may change a balance.
+
+
+-- ---- transactions ------------------------------------------
+drop policy if exists "read own transactions" on transactions;
+create policy "read own transactions"
+  on transactions for select using (auth.uid() = user_id or is_admin());
+
+
+-- ---- reviews -----------------------------------------------
+drop policy if exists "anyone can read reviews" on reviews;
+create policy "anyone can read reviews"
+  on reviews for select using (true);
+
+--  You may only review a batch you actually joined and paid for.
+drop policy if exists "student reviews own enrolment" on reviews;
+create policy "student reviews own enrolment"
+  on reviews for insert
+  with check (
+    auth.uid() = student_id
+    and exists (select 1 from enrolments e
+                 where e.id = reviews.enrolment_id
+                   and e.student_id = auth.uid())
+  );
+
+drop policy if exists "student updates own review" on reviews;
+create policy "student updates own review"
+  on reviews for update using (auth.uid() = student_id);
+
+
+-- ---- notifications -----------------------------------------
+drop policy if exists "read own notifications" on notifications;
+create policy "read own notifications"
+  on notifications for select using (auth.uid() = user_id);
+
+drop policy if exists "update own notifications" on notifications;
+create policy "update own notifications"
+  on notifications for update using (auth.uid() = user_id);
+
+
+-- ============================================================
+--  PART 6 — MAKE YOURSELF AN ADMIN
+--  Register normally in the app first, then run this line with
+--  your own email to open the Admin pages.
+--
+--    update profiles set role = 'admin'
+--     where id = (select id from auth.users where email = 'you@example.com');
+-- ============================================================
+
+
+-- ============================================================
+--  PART 7 — LIVE CLASS AND BATCH CHAT ROOM
+--  Added after the first version. Safe to run again.
+-- ============================================================
+
+-- ---- Live class details on each batch ----------------------
+alter table batches add column if not exists live_link text;
+alter table batches add column if not exists is_live boolean not null default false;
+alter table batches add column if not exists live_started_at timestamptz;
+
+
+-- ---- Chat messages inside one batch ------------------------
+create table if not exists messages (
+  id         bigserial primary key,
+  batch_id   bigint not null references batches (id) on delete cascade,
+  sender_id  uuid   not null references profiles (id) on delete cascade,
+  body       text   not null,
+  created_at timestamptz not null default now(),
+
+  constraint message_must_not_be_empty check (length(trim(body)) between 1 and 1000)
+);
+
+create index if not exists messages_batch_idx on messages (batch_id, created_at);
+
+
+-- ---- Who is allowed inside a batch room? -------------------
+--  The student must have joined it, or be the batch's tutor.
+create or replace function can_access_batch(p_batch_id bigint)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select
+    exists (select 1 from enrolments
+             where batch_id = p_batch_id and student_id = auth.uid())
+    or exists (select 1 from batches
+                where id = p_batch_id and tutor_id = auth.uid())
+    or is_admin();
+$$;
+
+
+-- ---- Security rules for the chat ---------------------------
+alter table messages enable row level security;
+
+--  You can only read a room you belong to.
+drop policy if exists "members read messages" on messages;
+create policy "members read messages"
+  on messages for select
+  using (can_access_batch(batch_id));
+
+--  You can only write as yourself, and only in a room you belong to.
+drop policy if exists "members write messages" on messages;
+create policy "members write messages"
+  on messages for insert
+  with check (auth.uid() = sender_id and can_access_batch(batch_id));
+
+--  You may delete your own message.
+drop policy if exists "delete own message" on messages;
+create policy "delete own message"
+  on messages for delete
+  using (auth.uid() = sender_id);
+
+
+-- ---- Turn on live updates for the chat ---------------------
+--  This is what makes a new message appear on everyone's
+--  screen straight away, without refreshing the page.
+do $$
+begin
+  alter publication supabase_realtime add table messages;
+exception
+  when duplicate_object then null;   -- already added, nothing to do
+end $$;
+
+
+-- ---- Tell students when the class goes live ----------------
+create or replace function notify_students_class_is_live()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.is_live = true and old.is_live = false then
+    insert into notifications (user_id, title, body, link)
+    select e.student_id,
+           'Class started',
+           new.title || ' has started. Join now.',
+           'batch-room.html?id=' || new.id
+      from enrolments e
+     where e.batch_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_batch_went_live on batches;
+create trigger on_batch_went_live
+  after update on batches
+  for each row execute function notify_students_class_is_live();
+
+
+-- ============================================================
+--  PART 8 — THREE WAYS TO RUN A LIVE CLASS
+--  Safe to run again.
+-- ============================================================
+--    'jitsi'  video inside our page, using the free Jitsi
+--             media server. Works for a whole batch.
+--    'p2p'    our own WebRTC video. The browsers talk straight
+--             to each other, with no media server at all.
+--             Good for a few people only.
+--    'link'   the tutor's own Zoom or Meet link.
+-- ============================================================
+
+alter table batches add column if not exists live_mode text not null default 'jitsi';
+alter table batches add column if not exists room_code text;
+
+alter table batches drop constraint if exists live_mode_must_be_valid;
+alter table batches add  constraint live_mode_must_be_valid
+  check (live_mode in ('jitsi', 'p2p', 'link'));
+
+-- ---- A private room name for every batch -------------------
+--  The batch id alone (1, 2, 3...) would be far too easy for a
+--  stranger to guess, so each batch gets a random room name.
+update batches
+   set room_code = 'hs-' || id::text || '-'
+                 || substr(md5(random()::text || clock_timestamp()::text), 1, 10)
+ where room_code is null;
+
+alter table batches alter column room_code
+  set default ('hs-' || substr(md5(random()::text || clock_timestamp()::text), 1, 14));
+
+
+-- ============================================================
+--  PART 9 — WHO WATCHED THE CLASS
+--  Safe to run again.
+--
+--  Every time someone opens a live class, one row is written
+--  here. The video itself also shows their name on screen
+--  (see js/watermark.js), so a leaked recording points at a
+--  person. This table is the second half of that: even if the
+--  label was somehow removed, there is still a list of who
+--  was watching at that moment.
+-- ============================================================
+
+create table if not exists class_views (
+  id         bigserial primary key,
+  batch_id   bigint not null references batches (id) on delete cascade,
+  user_id    uuid   not null references profiles (id) on delete cascade,
+  mode       text,                       -- jitsi | p2p | link
+  user_agent text,                       -- which browser and device
+  opened_at  timestamptz not null default now()
+);
+
+create index if not exists class_views_batch_idx on class_views (batch_id, opened_at desc);
+
+alter table class_views enable row level security;
+
+--  You can only write a row about yourself, and only for a
+--  batch you actually belong to.
+drop policy if exists "log own view" on class_views;
+create policy "log own view"
+  on class_views for insert
+  with check (auth.uid() = user_id and can_access_batch(batch_id));
+
+--  The tutor of the batch and an admin can see the list.
+--  A student can see their own rows only.
+drop policy if exists "tutor or admin reads views" on class_views;
+create policy "tutor or admin reads views"
+  on class_views for select
+  using (
+    auth.uid() = user_id
+    or is_admin()
+    or exists (select 1 from batches b
+                where b.id = class_views.batch_id and b.tutor_id = auth.uid())
+  );

@@ -1,19 +1,26 @@
 // ============================================================
 //  LOGIN PAGE
+//  Sign in, then send each kind of user to their own page.
 // ============================================================
 
 import { supabase } from './supabase.js';
-import { renderNav, getMyProfile } from './session.js';
+import { renderTopbar, getMyProfile } from './session.js';
+import { toast, busy, renderPageHero, setupReveal } from './ui.js';
 
-renderNav();
+renderTopbar();
+  renderPageHero({
+    eyebrow: 'Welcome back',
+    title: 'Log in',
+    subtitle: 'One account works for both learning and teaching.',
+  });
+  setupReveal();
 
 const form = document.getElementById('login-form');
-const message = document.getElementById('message');
+const submitBtn = document.getElementById('submit-btn');
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  message.textContent = 'Logging in...';
-  message.className = 'message';
+  busy(submitBtn, true, 'Logging in...');
 
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
@@ -24,13 +31,18 @@ form.addEventListener('submit', async (event) => {
   });
 
   if (error) {
-    message.textContent = error.message;
-    message.className = 'message error';
+    toast('Wrong email or password.', 'error');
+    busy(submitBtn, false);
     return;
   }
 
-  // Send tutors to their profile page, students to browse.
   const profile = await getMyProfile();
-  window.location.href =
-    profile && profile.role === 'tutor' ? 'tutor-profile.html' : 'browse.html';
+
+  if (profile?.role === 'tutor') {
+    window.location.href = 'tutor-dashboard.html';
+  } else if (profile?.role === 'admin') {
+    window.location.href = 'admin-dashboard.html';
+  } else {
+    window.location.href = 'browse.html';
+  }
 });

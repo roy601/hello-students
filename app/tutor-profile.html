@@ -3,103 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My batches — HelloStudents</title>
+  <title>My tutor profile — HelloStudents</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <header class="topbar">
-    <a class="logo" href="index.html">HelloStudents</a>
-    <nav id="nav-links"></nav>
-  </header>
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
 
-  <main class="page narrow" id="page">
-    <h1>My tutor page</h1>
-    <p class="muted" id="greeting"></p>
+  <main class="page mid">
 
-    <!-- ---------- PART A: about you ---------- -->
-    <h2>About you</h2>
-    <form id="about-form" class="form">
+    
+    <div id="status-area" class="mb-md"></div>
 
-      <label for="headline">Headline</label>
-      <input id="headline" type="text" maxlength="120"
-             placeholder="HSC Physics · 8 years · 200+ students to A+" />
+    <section class="card mb-md">
+      <h2>About you</h2>
+      <p class="muted mb">Students see this on every batch you open.</p>
 
-      <label for="bio">About you</label>
-      <textarea id="bio" rows="4"
-                placeholder="Tell students how you teach."></textarea>
-
-      <button class="btn" type="submit">Save</button>
-    </form>
-    <p id="about-message" class="message"></p>
-
-    <!-- ---------- PART B: batches ---------- -->
-    <h2>My batches</h2>
-    <p class="lead">
-      Students join a <strong>batch</strong> and pay a
-      <strong>monthly fee</strong>. Open one batch for each group
-      you teach — each can have its own days, time and fee.
-    </p>
-
-    <div id="batch-list" class="batch-list"></div>
-
-    <h3 class="section-title">Open a new batch</h3>
-    <form id="batch-form" class="form">
-
-      <label for="batch-title">Batch name</label>
-      <input id="batch-title" type="text" required maxlength="80"
-             placeholder="HSC Physics — Morning Batch" />
-
-      <label for="batch-subject">Subject</label>
-      <select id="batch-subject" required></select>
-
-      <label>Class days</label>
-      <div id="day-list" class="checkbox-list"></div>
-
-      <div class="two-col">
-        <div>
-          <label for="batch-start">Start time</label>
-          <input id="batch-start" type="time" required value="16:00" />
+      <form id="about-form" class="form">
+        <div class="field">
+          <label for="headline">Headline</label>
+          <input id="headline" type="text" maxlength="120"
+                 placeholder="HSC Physics · 8 years · 200+ students to A+" />
+          <p class="hint">One short line describing what you teach.</p>
         </div>
-        <div>
-          <label for="batch-end">End time</label>
-          <input id="batch-end" type="time" required value="17:30" />
-        </div>
-      </div>
 
-      <div class="two-col">
-        <div>
-          <label for="batch-fee">Monthly fee (BDT)</label>
-          <input id="batch-fee" type="number" required min="100" step="50"
-                 placeholder="2500" />
+        <div class="field">
+          <label for="bio">About you</label>
+          <textarea id="bio" rows="4"
+                    placeholder="Tell students how you teach and what results you get."></textarea>
         </div>
-        <div>
-          <label for="batch-seats">Seats</label>
-          <input id="batch-seats" type="number" required min="1" max="100"
-                 value="15" />
+
+        <div class="pair">
+          <div class="field">
+            <label for="experience">Years of experience</label>
+            <input id="experience" type="number" min="0" max="60" value="0" />
+          </div>
+          <div class="field">
+            <label for="area">Your main area</label>
+            <select id="area"></select>
+          </div>
         </div>
-      </div>
-      <p class="hint">
-        Fee is per student, per month — not per hour.
+
+        <button class="btn" type="submit" id="about-btn">Save profile</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Certificates</h2>
+      <p class="muted mb">
+        Add your degrees. Our team checks them, and a checked badge makes
+        students far more likely to join your batch.
       </p>
 
-      <label class="checkbox">
-        <input id="batch-online" type="checkbox" />
-        <span>Online batch (no area needed)</span>
-      </label>
+      <div id="cred-list" class="stack-sm mb"></div>
 
-      <label for="batch-area">Area</label>
-      <select id="batch-area"></select>
+      <form id="cred-form" class="form">
+        <div class="pair">
+          <div class="field">
+            <label for="cred-title">Certificate</label>
+            <input id="cred-title" type="text" required placeholder="BSc in EEE" />
+          </div>
+          <div class="field">
+            <label for="cred-inst">Institution</label>
+            <input id="cred-inst" type="text" required placeholder="BUET" />
+          </div>
+        </div>
 
-      <label class="checkbox">
-        <input id="batch-publish" type="checkbox" checked />
-        <span>Publish, so students can find this batch</span>
-      </label>
+        <div class="field">
+          <label for="cred-year">Year</label>
+          <input id="cred-year" type="number" min="1970" max="2030" placeholder="2019" />
+        </div>
 
-      <button class="btn" type="submit">Open batch</button>
-    </form>
+        <button class="btn btn-outline" type="submit" id="cred-btn">Add certificate</button>
+      </form>
+    </section>
 
-    <p id="batch-message" class="message"></p>
   </main>
 
   <script type="module" src="js/tutor-profile.js"></script>

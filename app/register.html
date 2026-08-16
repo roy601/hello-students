@@ -8,40 +8,49 @@
 </head>
 <body>
 
-  <header class="topbar">
-    <a class="logo" href="index.html">HelloStudents</a>
-    <nav id="nav-links"></nav>
-  </header>
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
 
   <main class="page narrow">
-    <h1>Create an account</h1>
+        
+    <form id="register-form" class="card form">
 
-    <form id="register-form" class="form">
+      <div class="field">
+        <label for="full-name">Full name</label>
+        <input id="full-name" type="text" required placeholder="Rifat Hossain" />
+      </div>
 
-      <label for="full-name">Full name</label>
-      <input id="full-name" type="text" required placeholder="Rifat Hossain" />
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input id="phone" type="tel" placeholder="01712345678" />
+      </div>
 
-      <label for="phone">Phone number</label>
-      <input id="phone" type="tel" placeholder="01712345678" />
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required placeholder="you@example.com" />
+      </div>
 
-      <label for="email">Email</label>
-      <input id="email" type="email" required placeholder="you@example.com" />
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required minlength="6"
+               placeholder="At least 6 characters" />
+      </div>
 
-      <label for="password">Password</label>
-      <input id="password" type="password" required minlength="6"
-             placeholder="At least 6 characters" />
+      <div class="field">
+        <label for="role">I want to</label>
+        <select id="role">
+          <option value="student">Join batches as a student</option>
+          <option value="tutor">Teach and open my own batches</option>
+        </select>
+        <p class="hint">Tutors are checked by our team before their batches go live.</p>
+      </div>
 
-      <label for="role">I am a</label>
-      <select id="role">
-        <option value="student">Student</option>
-        <option value="tutor">Tutor</option>
-      </select>
-
-      <button class="btn" type="submit">Register</button>
+      <button class="btn btn-block" type="submit" id="submit-btn">Create account</button>
     </form>
 
-    <p id="message" class="message"></p>
-    <p class="muted">Already have an account? <a href="login.html">Login</a></p>
+    <p class="muted center mt">
+      Already have an account? <a href="login.html">Log in</a>
+    </p>
   </main>
 
   <script type="module" src="js/register.js"></script>

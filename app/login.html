@@ -3,32 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login — HelloStudents</title>
+  <title>Log in — HelloStudents</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <header class="topbar">
-    <a class="logo" href="index.html">HelloStudents</a>
-    <nav id="nav-links"></nav>
-  </header>
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
 
   <main class="page narrow">
-    <h1>Login</h1>
+        
+    <form id="login-form" class="card form">
 
-    <form id="login-form" class="form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required placeholder="you@example.com" />
+      </div>
 
-      <label for="email">Email</label>
-      <input id="email" type="email" required placeholder="you@example.com" />
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required placeholder="Your password" />
+      </div>
 
-      <label for="password">Password</label>
-      <input id="password" type="password" required placeholder="Your password" />
-
-      <button class="btn" type="submit">Login</button>
+      <button class="btn btn-block" type="submit" id="submit-btn">Log in</button>
     </form>
 
-    <p id="message" class="message"></p>
-    <p class="muted">No account yet? <a href="register.html">Register</a></p>
+    <p class="muted center mt">
+      New here? <a href="register.html">Create an account</a>
+    </p>
   </main>
 
   <script type="module" src="js/login.js"></script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
+
+  <main class="page mid">
+
+    <div id="status-area" class="mb-md"></div>
+
+    <section class="grid-4 mb-md" id="stats"></section>
+
+    <section class="card mb-md">
+      <div class="card-head">
+        <h2>My batches</h2>
+        <a class="btn btn-outline btn-sm" href="tutor-batches.html">Manage</a>
+      </div>
+      <div id="batches"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="mb">Recent earnings</h2>
+      <div id="earnings"></div>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/tutor-dashboard.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My wallet — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
+
+  <main class="page mid">
+
+    
+    <section class="wallet mb-md">
+      <div class="label">Balance</div>
+      <div class="amount" id="balance">&#2547;0</div>
+      <div class="note">Use this to join batches.</div>
+    </section>
+
+    <section class="card mb-md">
+      <h2>Add money</h2>
+      <p class="muted mb">Choose an amount, then pick how you want to pay.</p>
+
+      <form id="topup-form" class="form">
+
+        <div class="field">
+          <label>Amount</label>
+          <div class="amount-grid" id="amount-grid">
+            <label class="amount-opt">
+              <input type="radio" name="amount" value="500" checked />&#2547;500
+            </label>
+            <label class="amount-opt">
+              <input type="radio" name="amount" value="1000" />&#2547;1,000
+            </label>
+            <label class="amount-opt">
+              <input type="radio" name="amount" value="2000" />&#2547;2,000
+            </label>
+            <label class="amount-opt">
+              <input type="radio" name="amount" value="3000" />&#2547;3,000
+            </label>
+            <label class="amount-opt">
+              <input type="radio" name="amount" value="5000" />&#2547;5,000
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="method">Pay with</label>
+          <select id="method">
+            <option value="bKash">bKash</option>
+            <option value="Nagad">Nagad</option>
+            <option value="Rocket">Rocket</option>
+            <option value="Card">Card</option>
+          </select>
+        </div>
+
+        <div class="alert alert-warning">
+          <strong>Demo mode.</strong> No real money moves. A finished site would
+          confirm the payment with bKash or Nagad before adding the balance.
+        </div>
+
+        <button class="btn btn-block" type="submit" id="topup-btn">Add money</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2 class="mb">Payment history</h2>
+      <div id="history"></div>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/student-wallet.js"></script>
+
+</body>
+</html>
