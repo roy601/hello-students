@@ -197,12 +197,21 @@ function drawJoinArea(alreadyJoined, seatsLeft) {
     return;
   }
 
+  // Two ways to pay: straight from the wallet, or a fresh
+  // payment with bKash / Nagad / Rocket / card.
   area.innerHTML = `
-    <button class="btn btn-lg btn-block" id="join-btn" type="button">
-      Join this batch — ${taka(batch.monthly_fee)} per month
+    <a class="btn btn-lg btn-block" href="checkout.html?batch=${batchId}">
+      Pay ${taka(batch.monthly_fee)} and join
+    </a>
+    <p class="hint center mt-sm">bKash · Nagad · Rocket · Card</p>
+
+    <div class="or-line"><span>or</span></div>
+
+    <button class="btn btn-outline btn-block" id="join-btn" type="button">
+      Use my wallet balance
     </button>
     <p class="hint center mt-sm">
-      The fee is taken from your wallet. You can add money on the Wallet page.
+      Takes ${taka(batch.monthly_fee)} from the money already in your wallet.
     </p>`;
 
   document.getElementById('join-btn').addEventListener('click', joinBatch);

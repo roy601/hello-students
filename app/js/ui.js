@@ -103,10 +103,31 @@ export function busy(button, isBusy, busyLabel = 'Please wait...') {
   }
 }
 
+// ---- A thin progress bar along the top of the page --------
+export function setupScrollProgress() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'scroll-progress';
+  document.body.appendChild(bar);
+
+  function update() {
+    const scrollable = document.body.scrollHeight - window.innerHeight;
+    const done = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+    bar.style.width = done + '%';
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+}
+
 // ---- Fade sections in as they scroll into view -------------
 //  Put class="reveal" on anything that should slide up.
 export function setupReveal() {
-  const items = document.querySelectorAll('.reveal');
+  // .reveal  -> the whole block fades up
+  // .stagger -> its children come in one after another
+  const items = document.querySelectorAll('.reveal, .stagger');
   if (items.length === 0) return;
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

@@ -904,3 +904,652 @@ create policy "tutor or admin reads views"
     or exists (select 1 from batches b
                 where b.id = class_views.batch_id and b.tutor_id = auth.uid())
   );
+
+
+-- ============================================================
+--  PART 10 — PAY FOR ONE BATCH (payment gateway)
+--  Safe to run again.
+-- ============================================================
+--  Before this, a student could only pay from their wallet.
+--  Now they can also pay for one batch directly with bKash,
+--  Nagad, Rocket or a card.
+--
+--  THE THREE STEPS, AND WHO IS ALLOWED TO DO EACH:
+--    1. start_batch_payment()   the student  -> makes an order
+--    2. mark the order as paid  THE GATEWAY  -> never the browser
+--    3. enrol_with_payment()    the student  -> only if step 2 happened
+--
+--  Step 2 must never be trusted to the browser, because anyone
+--  could then claim "I paid" without paying. In the real setup
+--  a Supabase Edge Function does it, using the secret merchant
+--  password that the browser never sees.
+-- ============================================================
+
+create table if not exists payments (
+  id           bigserial primary key,
+  tran_id      text not null unique,      -- our own reference, sent to the gateway
+  student_id   uuid   not null references profiles (id) on delete cascade,
+  batch_id     bigint not null references batches (id) on delete cascade,
+  amount       integer not null,
+  method       text,                      -- bkash | nagad | rocket | card
+  status       text not null default 'initiated',
+  provider     text not null default 'demo',   -- demo | sslcommerz
+  provider_ref text,                      -- the gateway own reference
+  created_at   timestamptz not null default now(),
+  paid_at      timestamptz,
+
+  constraint payment_amount_is_sensible check (amount > 0),
+  constraint payment_status_is_valid
+    check (status in ('initiated', 'paid', 'failed', 'cancelled', 'used'))
+);
+
+create index if not exists payments_student_idx on payments (student_id, created_at desc);
+create index if not exists payments_batch_idx   on payments (batch_id);
+
+
+-- ---- STEP 1: the student starts an order -------------------
+create or replace function start_batch_payment(p_batch_id bigint, p_method text)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_student uuid := auth.uid();
+  v_batch   batches%rowtype;
+  v_tran    text;
+begin
+  if v_student is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  select * into v_batch from batches where id = p_batch_id;
+
+  if not found then
+    raise exception 'Batch not found';
+  end if;
+  if not v_batch.is_published then
+    raise exception 'This batch is not open yet';
+  end if;
+  if v_batch.seats_taken >= v_batch.seat_limit then
+    raise exception 'This batch is full';
+  end if;
+  if exists (select 1 from enrolments
+              where batch_id = p_batch_id and student_id = v_student) then
+    raise exception 'You have already joined this batch';
+  end if;
+
+  -- A reference the gateway sends back to us, e.g. HS-7-1a2b3c4d
+  v_tran := 'HS-' || p_batch_id::text || '-' ||
+            substr(md5(random()::text || clock_timestamp()::text), 1, 8);
+
+  insert into payments (tran_id, student_id, batch_id, amount, method)
+  values (v_tran, v_student, p_batch_id, v_batch.monthly_fee, p_method);
+
+  return v_tran;
+end;
+$fn$;
+
+
+-- ---- STEP 2 (DEMO ONLY): pretend the gateway said yes ------
+--  *** REMOVE THIS FUNCTION BEFORE A REAL LAUNCH. ***
+--  It lets the browser mark an order as paid, which is exactly
+--  the job a real gateway must do instead. It exists only so
+--  the project can be shown working without a merchant account.
+--
+--    drop function if exists demo_confirm_payment(text);
+create or replace function demo_confirm_payment(p_tran_id text)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_payment payments%rowtype;
+begin
+  select * into v_payment from payments
+   where tran_id = p_tran_id and student_id = auth.uid()
+   for update;
+
+  if not found then
+    raise exception 'Payment not found';
+  end if;
+  if v_payment.status <> 'initiated' then
+    raise exception 'This payment is already %', v_payment.status;
+  end if;
+
+  update payments
+     set status = 'paid',
+         paid_at = now(),
+         provider_ref = 'DEMO-' || substr(md5(random()::text), 1, 10)
+   where id = v_payment.id;
+
+  return 'paid';
+end;
+$fn$;
+
+
+-- ---- STEP 3: turn a paid order into a seat -----------------
+--  Everything happens together, or nothing does.
+create or replace function enrol_with_payment(p_tran_id text)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_student uuid := auth.uid();
+  v_payment payments%rowtype;
+  v_batch   batches%rowtype;
+  v_name    text;
+begin
+  select * into v_payment from payments
+   where tran_id = p_tran_id and student_id = v_student
+   for update;
+
+  if not found then
+    raise exception 'Payment not found';
+  end if;
+  if v_payment.status = 'used' then
+    raise exception 'This payment has already been used';
+  end if;
+  if v_payment.status <> 'paid' then
+    raise exception 'This payment is not complete yet';
+  end if;
+
+  select * into v_batch from batches where id = v_payment.batch_id for update;
+
+  if v_batch.seats_taken >= v_batch.seat_limit then
+    raise exception 'This batch filled up. Please contact support for a refund.';
+  end if;
+  if exists (select 1 from enrolments
+              where batch_id = v_batch.id and student_id = v_student) then
+    raise exception 'You have already joined this batch';
+  end if;
+
+  -- the seat
+  insert into enrolments (batch_id, student_id, fee_paid)
+  values (v_batch.id, v_student, v_payment.amount);
+
+  update batches set seats_taken = seats_taken + 1 where id = v_batch.id;
+  update tutor_profiles set students_taught = students_taught + 1
+   where id = v_batch.tutor_id;
+
+  -- the student record of what they paid
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_student, 'enrol_payment', -v_payment.amount,
+          'Paid for ' || v_batch.title || ' by ' || coalesce(v_payment.method, 'card'),
+          v_batch.id);
+
+  -- the tutor gets 85%, the site keeps 15%
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_batch.tutor_id, 'tutor_earning',
+          round(v_payment.amount * 0.85),
+          'A student joined ' || v_batch.title, v_batch.id);
+
+  update wallets
+     set balance = balance + round(v_payment.amount * 0.85), updated_at = now()
+   where user_id = v_batch.tutor_id;
+
+  -- the order cannot be spent twice
+  update payments set status = 'used' where id = v_payment.id;
+
+  select full_name into v_name from profiles where id = v_student;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_student, 'Payment received',
+          'You joined ' || v_batch.title || '. See it in My Classes.',
+          'student-dashboard.html');
+
+  insert into notifications (user_id, title, body, link)
+  values (v_batch.tutor_id, 'New student',
+          v_name || ' paid and joined ' || v_batch.title || '.',
+          'tutor-students.html');
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ---- Security rules ----------------------------------------
+alter table payments enable row level security;
+
+--  A student sees their own orders. An admin sees all.
+drop policy if exists "read own payments" on payments;
+create policy "read own payments"
+  on payments for select
+  using (auth.uid() = student_id or is_admin());
+
+--  No insert or update policy on purpose: orders are only
+--  created and changed by the functions above, so the browser
+--  can never write or edit a payment row directly.
+
+
+-- ============================================================
+--  PART 11 â€” THE CLASSROOM
+--
+--  This is the Google Classroom style part of a batch:
+--  a wall everyone can talk on, and work the tutor sets
+--  and marks.
+--
+--  Three tables:
+--
+--    posts          one note on the class wall. A post is one
+--                   of three kinds:
+--                     announcement  a message to the class
+--                     material      a note with a link to read
+--                     assignment    work, with a due date
+--
+--    post_comments  what people say under a post. This is how
+--                   the whole batch talks to each other.
+--
+--    submissions    one student's answer to one assignment,
+--                   plus the mark the tutor gave it.
+--
+--  Run this part after PART 10.
+-- ============================================================
+
+
+-- ---- 1. the class wall -------------------------------------
+create table if not exists posts (
+  id         bigserial primary key,
+  batch_id   bigint not null references batches (id)   on delete cascade,
+  author_id  uuid   not null references profiles (id)  on delete cascade,
+
+  kind       text   not null default 'announcement',
+  title      text,
+  body       text,
+  link_url   text,
+
+  --  only used when kind = 'assignment'
+  due_at     timestamptz,
+  points     integer,
+
+  created_at timestamptz not null default now(),
+
+  constraint post_kind_is_known
+    check (kind in ('announcement', 'material', 'assignment')),
+
+  --  an announcement needs words, the other two need a title
+  constraint post_must_say_something
+    check (
+      (kind = 'announcement' and length(trim(coalesce(body, ''))) between 1 and 5000)
+      or (kind <> 'announcement' and length(trim(coalesce(title, ''))) between 1 and 200)
+    ),
+
+  constraint points_must_be_sensible
+    check (points is null or points between 1 and 1000)
+);
+
+create index if not exists posts_batch_idx on posts (batch_id, created_at desc);
+
+
+-- ---- 2. comments under a post ------------------------------
+create table if not exists post_comments (
+  id         bigserial primary key,
+  post_id    bigint not null references posts (id)     on delete cascade,
+  author_id  uuid   not null references profiles (id)  on delete cascade,
+  body       text   not null,
+  created_at timestamptz not null default now(),
+
+  constraint comment_must_not_be_empty
+    check (length(trim(body)) between 1 and 2000)
+);
+
+create index if not exists post_comments_post_idx
+  on post_comments (post_id, created_at);
+
+
+-- ---- 3. a student's answer to one assignment ---------------
+create table if not exists submissions (
+  id           bigserial primary key,
+  post_id      bigint not null references posts (id)    on delete cascade,
+  student_id   uuid   not null references profiles (id) on delete cascade,
+
+  note         text,
+  link_url     text,
+
+  status       text not null default 'submitted',
+  marks        integer,
+  feedback     text,
+
+  submitted_at timestamptz not null default now(),
+  returned_at  timestamptz,
+
+  --  one answer per student per assignment
+  constraint one_answer_per_student unique (post_id, student_id),
+
+  constraint submission_status_is_known
+    check (status in ('submitted', 'returned'))
+);
+
+create index if not exists submissions_post_idx on submissions (post_id);
+create index if not exists submissions_student_idx on submissions (student_id);
+
+
+-- ============================================================
+--  WHO IS THE TUTOR OF THIS BATCH?
+--
+--  can_access_batch (PART 7) already answers "is this person
+--  in the room". This one answers "is this person in charge of
+--  the room", which is what setting and marking work needs.
+-- ============================================================
+create or replace function is_batch_tutor(p_batch_id bigint)
+returns boolean
+language sql
+security definer
+stable
+as $fn$
+  select exists (
+    select 1 from batches
+     where id = p_batch_id and tutor_id = auth.uid()
+  );
+$fn$;
+
+
+-- ============================================================
+--  SECURITY RULES FOR THE WALL
+-- ============================================================
+alter table posts enable row level security;
+
+--  Everyone in the batch reads the wall.
+drop policy if exists "members read posts" on posts;
+create policy "members read posts"
+  on posts for select
+  using (can_access_batch(batch_id));
+
+--  Anyone in the batch may write an announcement, because the
+--  whole point is that students can talk too. But only the
+--  tutor may set work or post material.
+drop policy if exists "members write posts" on posts;
+create policy "members write posts"
+  on posts for insert
+  with check (
+    auth.uid() = author_id
+    and can_access_batch(batch_id)
+    and (kind = 'announcement' or is_batch_tutor(batch_id))
+  );
+
+--  You may edit your own post.
+drop policy if exists "edit own post" on posts;
+create policy "edit own post"
+  on posts for update
+  using (auth.uid() = author_id)
+  with check (auth.uid() = author_id);
+
+--  You may delete your own post. The tutor may delete any post
+--  in their batch, the way a teacher can clear the noticeboard.
+drop policy if exists "delete own post" on posts;
+create policy "delete own post"
+  on posts for delete
+  using (auth.uid() = author_id or is_batch_tutor(batch_id));
+
+
+-- ============================================================
+--  SECURITY RULES FOR COMMENTS
+--
+--  A comment has no batch_id of its own, so every rule looks
+--  up the post it belongs to and asks about that batch.
+-- ============================================================
+alter table post_comments enable row level security;
+
+drop policy if exists "members read comments" on post_comments;
+create policy "members read comments"
+  on post_comments for select
+  using (
+    exists (select 1 from posts p
+             where p.id = post_id and can_access_batch(p.batch_id))
+  );
+
+drop policy if exists "members write comments" on post_comments;
+create policy "members write comments"
+  on post_comments for insert
+  with check (
+    auth.uid() = author_id
+    and exists (select 1 from posts p
+                 where p.id = post_id and can_access_batch(p.batch_id))
+  );
+
+drop policy if exists "delete own comment" on post_comments;
+create policy "delete own comment"
+  on post_comments for delete
+  using (
+    auth.uid() = author_id
+    or exists (select 1 from posts p
+                where p.id = post_id and is_batch_tutor(p.batch_id))
+  );
+
+
+-- ============================================================
+--  SECURITY RULES FOR SUBMITTED WORK
+--
+--  Read only. There is no insert or update policy on purpose.
+--  Handing work in and marking it both go through the two
+--  functions below, the same way payments do, so a student
+--  cannot quietly give themselves 100 out of 100.
+-- ============================================================
+alter table submissions enable row level security;
+
+--  A student sees their own work. The tutor sees the whole
+--  batch's work.
+drop policy if exists "student or tutor reads submission" on submissions;
+create policy "student or tutor reads submission"
+  on submissions for select
+  using (
+    auth.uid() = student_id
+    or is_admin()
+    or exists (select 1 from posts p
+                where p.id = post_id and is_batch_tutor(p.batch_id))
+  );
+
+
+-- ============================================================
+--  CLASSMATES CAN SEE EACH OTHER
+--
+--  The People tab needs this. Until now a student could only
+--  see their own enrolment row, so the class list came back
+--  empty. Now anyone in the batch can see who else is in it â€”
+--  and only for a batch they are actually in.
+-- ============================================================
+drop policy if exists "classmates see each other" on enrolments;
+create policy "classmates see each other"
+  on enrolments for select
+  using (can_access_batch(batch_id));
+
+
+-- ============================================================
+--  HAND WORK IN
+--
+--  Called by the student. Handing in twice just replaces the
+--  first answer, which is what "unsubmit and try again" means.
+--  Work already marked cannot be changed.
+-- ============================================================
+create or replace function submit_work(
+  p_post_id bigint,
+  p_note    text,
+  p_link    text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_student  uuid := auth.uid();
+  v_post     posts%rowtype;
+  v_existing submissions%rowtype;
+begin
+  if v_student is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  select * into v_post from posts where id = p_post_id;
+
+  if not found then
+    raise exception 'That work no longer exists';
+  end if;
+  if v_post.kind <> 'assignment' then
+    raise exception 'That post is not an assignment';
+  end if;
+
+  --  must be a student of this batch, not the tutor
+  if not exists (select 1 from enrolments
+                  where batch_id = v_post.batch_id and student_id = v_student) then
+    raise exception 'You are not a student of this batch';
+  end if;
+
+  if trim(coalesce(p_note, '')) = '' and trim(coalesce(p_link, '')) = '' then
+    raise exception 'Write an answer or add a link before handing in';
+  end if;
+
+  select * into v_existing from submissions
+   where post_id = p_post_id and student_id = v_student;
+
+  if found and v_existing.status = 'returned' then
+    raise exception 'This work is already marked, so it cannot be changed';
+  end if;
+
+  insert into submissions (post_id, student_id, note, link_url, status, submitted_at)
+  values (p_post_id, v_student,
+          nullif(trim(coalesce(p_note, '')), ''),
+          nullif(trim(coalesce(p_link, '')), ''),
+          'submitted', now())
+  on conflict (post_id, student_id) do update
+     set note         = excluded.note,
+         link_url     = excluded.link_url,
+         status       = 'submitted',
+         submitted_at = now();
+
+  --  tell the tutor it arrived
+  insert into notifications (user_id, title, body, link)
+  select b.tutor_id,
+         'Work handed in',
+         coalesce(pr.full_name, 'A student') || ' handed in ' ||
+           coalesce(v_post.title, 'an assignment') || '.',
+         'batch-room.html?id=' || v_post.batch_id
+    from batches b
+    left join profiles pr on pr.id = v_student
+   where b.id = v_post.batch_id;
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ============================================================
+--  MARK WORK
+--
+--  Called by the tutor only. The check below is the reason a
+--  student cannot mark their own work: this function looks up
+--  who owns the batch, and auth.uid() cannot be faked.
+-- ============================================================
+create or replace function grade_work(
+  p_submission_id bigint,
+  p_marks         integer,
+  p_feedback      text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_sub  submissions%rowtype;
+  v_post posts%rowtype;
+begin
+  select * into v_sub from submissions where id = p_submission_id;
+  if not found then
+    raise exception 'That work was not found';
+  end if;
+
+  select * into v_post from posts where id = v_sub.post_id;
+
+  if not is_batch_tutor(v_post.batch_id) then
+    raise exception 'Only the tutor of this batch can mark work';
+  end if;
+
+  if p_marks is not null and v_post.points is not null
+     and (p_marks < 0 or p_marks > v_post.points) then
+    raise exception 'Marks must be between 0 and %.', v_post.points;
+  end if;
+
+  update submissions
+     set marks       = p_marks,
+         feedback    = nullif(trim(coalesce(p_feedback, '')), ''),
+         status      = 'returned',
+         returned_at = now()
+   where id = p_submission_id;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_sub.student_id,
+          'Your work was marked',
+          coalesce(v_post.title, 'Your assignment') || ' has been returned' ||
+            case when p_marks is null then '.'
+                 else ' with ' || p_marks || ' out of ' ||
+                      coalesce(v_post.points::text, '?') || '.' end,
+          'batch-room.html?id=' || v_post.batch_id);
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ============================================================
+--  TELL THE CLASS WHEN THE TUTOR POSTS
+--
+--  A trigger, not browser code, so the notification is written
+--  even if the tutor closes the tab straight away.
+--  Only the tutor's posts notify, or every student comment
+--  would ping the whole batch.
+-- ============================================================
+create or replace function notify_batch_of_post()
+returns trigger
+language plpgsql
+security definer
+as $fn$
+declare
+  v_batch batches%rowtype;
+  v_what  text;
+begin
+  select * into v_batch from batches where id = new.batch_id;
+
+  if v_batch.tutor_id <> new.author_id then
+    return new;               -- a student posted, so stay quiet
+  end if;
+
+  v_what := case new.kind
+              when 'assignment' then 'New work: ' || coalesce(new.title, '')
+              when 'material'   then 'New material: ' || coalesce(new.title, '')
+              else 'New announcement'
+            end;
+
+  insert into notifications (user_id, title, body, link)
+  select e.student_id,
+         v_what,
+         'In ' || v_batch.title || '.',
+         'batch-room.html?id=' || new.batch_id
+    from enrolments e
+   where e.batch_id = new.batch_id;
+
+  return new;
+end;
+$fn$;
+
+drop trigger if exists posts_notify_batch on posts;
+create trigger posts_notify_batch
+  after insert on posts
+  for each row execute function notify_batch_of_post();
+
+
+-- ============================================================
+--  LIVE UPDATES FOR THE WALL
+--
+--  So a new post or comment appears on everyone's screen
+--  without refreshing, exactly like the chat in PART 7.
+-- ============================================================
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table posts;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table post_comments;
+  exception when duplicate_object then null;
+  end;
+end $$;

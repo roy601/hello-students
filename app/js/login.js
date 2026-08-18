@@ -5,15 +5,9 @@
 
 import { supabase } from './supabase.js';
 import { renderTopbar, getMyProfile } from './session.js';
-import { toast, busy, renderPageHero, setupReveal } from './ui.js';
+import { toast, busy } from './ui.js';
 
 renderTopbar();
-  renderPageHero({
-    eyebrow: 'Welcome back',
-    title: 'Log in',
-    subtitle: 'One account works for both learning and teaching.',
-  });
-  setupReveal();
 
 const form = document.getElementById('login-form');
 const submitBtn = document.getElementById('submit-btn');

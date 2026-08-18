@@ -3,169 +3,709 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HelloStudents — Find a tutor batch near you</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>HelloStudents — Your classroom. Your platform. Your students.</title>
+  <meta name="description" content="Everything teachers need to teach, manage and grow — batches, live classes, lectures and your own digital academy." />
+  <link rel="stylesheet" href="css/style.css?v=3" />
+  <link rel="stylesheet" href="css/landing.css?v=3" />
 </head>
 <body>
 
-  <div id="topbar"></div>
+<!-- ================= FLOATING NAV ================= -->
+<header class="topbar">
+  <div class="topbar-inner" id="topbar-inner">
+    <a class="logo" href="#top">
+      <span class="logo-mark" aria-hidden="true"></span> HelloStudents
+    </a>
 
-  <main>
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu">&#9776;</button>
 
-    <!-- ============ HERO: text left, 3D card deck right ============ -->
-    <section class="hero3d">
-      <div class="hero3d-inner">
+    <nav class="nav" id="main-nav">
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#teachers">For Teachers</a>
+      <a class="nav-link" href="#students">For Students</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
+      <a class="nav-link" href="#resources">Resources</a>
+      <div class="nav-user no-border-left">
+        <a class="nav-link" href="login.html">Log in</a>
+        <a class="btn btn-sm" href="register.html">Get Started</a>
+      </div>
+    </nav>
+  </div>
+</header>
 
-        <div class="hero3d-text reveal">
-          <span class="eyebrow">Batches near you · pay by the month</span>
 
-          <h1>Find your batch.<br />Learn from a real teacher.</h1>
+<main id="top">
 
-          <p class="hero3d-sub">
-            Fixed days, fixed time, one monthly fee. Tutors set their own
-            price — no coaching centre taking a cut.
-          </p>
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="orb orb-a" aria-hidden="true"></div>
+  <div class="orb orb-b" aria-hidden="true"></div>
+  <div class="grid-fade" aria-hidden="true"></div>
 
-          <!-- The product is search, so search starts right here -->
-          <form class="hero-search" id="hero-search">
-            <div class="field">
-              <label for="h-subject">Subject</label>
-              <select id="h-subject"><option value="">Any subject</option></select>
+  <div class="shell hero-inner">
+    <p class="hero-eyebrow anim" data-anim="1">
+      <span class="dot"></span> The modern operating system for teachers
+    </p>
+
+    <h1 class="hero-title anim" data-anim="2">
+      Your Classroom.<br />
+      <span class="grad">Your Platform.</span><br />
+      Your Students.
+    </h1>
+
+    <p class="hero-sub anim" data-anim="3">
+      Everything teachers need to teach, manage, and grow —
+      all in one beautiful platform.
+    </p>
+
+    <div class="hero-cta anim" data-anim="4">
+      <a class="btn btn-lg" href="register.html">
+        Create Your Teaching Platform <span class="arrow">&rarr;</span>
+      </a>
+      <a class="btn btn-ghost btn-lg" href="#showcase">Explore HelloStudents</a>
+    </div>
+
+    <p class="hero-note anim" data-anim="5">
+      No technical setup <span class="sep">·</span>
+      Built for teachers <span class="sep">·</span>
+      Teach from anywhere
+    </p>
+  </div>
+
+  <!-- product visualisation -->
+  <div class="stage anim" data-anim="6" id="hero-stage">
+    <div class="scene" id="hero-scene">
+
+      <!-- floating satellites -->
+      <div class="sat sat-profile" data-depth="34">
+        <div class="av av-lg">RH</div>
+        <div>
+          <b>Rifat Hossain</b>
+          <span>HSC Physics · 8 yrs</span>
+        </div>
+      </div>
+
+      <div class="sat sat-live" data-depth="52">
+        <span class="live-dot"></span>
+        <div>
+          <b>Live now</b>
+          <span>42 students joined</span>
+        </div>
+      </div>
+
+      <div class="sat sat-batch" data-depth="26">
+        <span class="chip">Batch</span>
+        <b>HSC Physics 2026</b>
+        <span>Sun · Tue · Thu — 8:00 AM</span>
+        <div class="mini-bar"><i></i></div>
+      </div>
+
+      <div class="sat sat-video" data-depth="44">
+        <div class="thumb"><span class="play"></span></div>
+        <b>Thermodynamics</b>
+        <span>18:42</span>
+      </div>
+
+      <div class="sat sat-avatars" data-depth="30">
+        <div class="av-row">
+          <span class="av">TA</span><span class="av">SK</span>
+          <span class="av">IH</span><span class="av">NA</span>
+          <span class="av more">+38</span>
+        </div>
+        <span>Students online</span>
+      </div>
+
+      <div class="sat sat-note" data-depth="60">
+        <b>৳ 84,500</b>
+        <span>this month</span>
+      </div>
+
+      <!-- the dashboard -->
+      <div class="dash" data-depth="12">
+        <div class="dash-bar">
+          <i></i><i></i><i></i>
+          <div class="dash-url">hellostudents.com/dashboard</div>
+        </div>
+        <div class="dash-body">
+          <aside class="dash-side">
+            <span class="side-brand"></span>
+            <b class="on">Dashboard</b>
+            <b>Batches</b><b>Classes</b><b>Lectures</b>
+            <b>Students</b><b>Payments</b><b>Analytics</b>
+          </aside>
+          <div class="dash-main">
+            <div class="dash-head">
+              <div>
+                <strong>Good morning, Rifat</strong>
+                <span>3 classes today</span>
+              </div>
+              <span class="pill">+ New batch</span>
             </div>
-            <div class="field">
-              <label for="h-area">Area</label>
-              <select id="h-area"><option value="">Any area</option></select>
+            <div class="kpis">
+              <div class="kpi"><span>Students</span><b>248</b><i class="up"></i></div>
+              <div class="kpi"><span>Batches</span><b>6</b><i class="up"></i></div>
+              <div class="kpi"><span>Lectures</span><b>132</b><i class="up"></i></div>
             </div>
-            <button class="btn btn-lg" type="submit">Find batches</button>
-          </form>
-
-          <div class="stat-strip" id="stat-strip"></div>
-        </div>
-
-        <!-- 3D deck. Cards float at different depths and tilt with
-             the mouse. Filled from the database by js/home.js -->
-        <div class="stage" id="stage">
-          <div class="deck" id="deck"></div>
-        </div>
-
-      </div>
-    </section>
-
-
-    <!-- ============ SUBJECTS: rotating 3D cube ============ -->
-    <section class="page subjects-band">
-      <div class="subjects-grid">
-
-        <div class="cube-stage reveal">
-          <div class="cube">
-            <div class="cube-face face-front">গণিত<span>Mathematics</span></div>
-            <div class="cube-face face-back">রসায়ন<span>Chemistry</span></div>
-            <div class="cube-face face-right">পদার্থ<span>Physics</span></div>
-            <div class="cube-face face-left">ICT<span>Technology</span></div>
-            <div class="cube-face face-top">ইংরেজি<span>English</span></div>
-            <div class="cube-face face-bottom">জীব<span>Biology</span></div>
-          </div>
-          <div class="cube-shadow"></div>
-        </div>
-
-        <div class="reveal">
-          <h2>Every subject, Class 6 to HSC</h2>
-          <p class="lead mt-sm mb">
-            Tap a subject to see the batches running right now.
-          </p>
-          <div class="chip-row" id="chip-row"></div>
-        </div>
-
-      </div>
-    </section>
-
-
-    <!-- ============ HOW IT WORKS: 3 steps, not a bullet list ====== -->
-    <section class="page">
-      <h2 class="center">From searching to sitting in class</h2>
-      <div class="steps-3d">
-
-        <div class="step-card reveal">
-          <span class="step-num">1</span>
-          <div class="step-art art-search"></div>
-          <h3>Search</h3>
-          <p class="muted">Filter by subject, area and monthly fee.</p>
-        </div>
-
-        <div class="step-arrow">&rarr;</div>
-
-        <div class="step-card reveal">
-          <span class="step-num">2</span>
-          <div class="step-art art-wallet"></div>
-          <h3>Top up</h3>
-          <p class="muted">Add money with bKash or Nagad, once.</p>
-        </div>
-
-        <div class="step-arrow">&rarr;</div>
-
-        <div class="step-card reveal">
-          <span class="step-num">3</span>
-          <div class="step-art art-seat"></div>
-          <h3>Take your seat</h3>
-          <p class="muted">Join in one tap and start the same week.</p>
-        </div>
-
-      </div>
-    </section>
-
-
-    <!-- ============ TRUST ROW ============ -->
-    <section class="page">
-      <div class="trust-row reveal">
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
-            <path d="M12 3l7 3v5c0 4.4-3 8.3-7 10-4-1.7-7-5.6-7-10V6l7-3z"/>
-            <path d="M9 12l2 2 4-4" class="tick"/>
-          </svg>
-          <div>
-            <h4>Checked tutors only</h4>
-            <p class="muted">Every tutor is approved before a batch goes live.</p>
-          </div>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
-            <rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/>
-            <path d="M2.5 10h19" class="tick"/>
-          </svg>
-          <div>
-            <h4>Every taka recorded</h4>
-            <p class="muted">Your wallet shows exactly where the money went.</p>
-          </div>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" class="tico" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 7v5l3.5 2" class="tick"/>
-          </svg>
-          <div>
-            <h4>Live class and class chat</h4>
-            <p class="muted">Join from home, and ask questions between classes.</p>
+            <div class="rows">
+              <div class="row-item"><span class="tag t1"></span><b>HSC Physics — Morning</b><em>8:00 AM</em></div>
+              <div class="row-item"><span class="tag t2"></span><b>Class 9 Maths</b><em>4:00 PM</em></div>
+              <div class="row-item"><span class="tag t3"></span><b>ICT Crash Batch</b><em>7:30 PM</em></div>
+            </div>
           </div>
         </div>
       </div>
-    </section>
+
+    </div>
+  </div>
+</section>
 
 
-    <!-- ============ FINAL CALL ============ -->
-    <section class="page">
-      <div class="cta-band reveal">
-        <h2>Teaching already? Open your first batch tonight.</h2>
-        <p>Set your days, your seats and your monthly fee. Keep 85%.</p>
-        <div class="row center-row mt">
-          <a class="btn btn-lg" href="register.html">Start teaching</a>
-          <a class="btn btn-lg btn-outline" href="browse.html">Browse batches</a>
+<!-- ================= SOCIAL PROOF ================= -->
+<section class="proof">
+  <div class="shell">
+    <p class="kicker reveal">Built for teachers in Bangladesh</p>
+    <div class="pstats reveal stagger" id="live-stats">
+      <div class="pstat"><b>&mdash;</b><span>Tutors</span></div>
+      <div class="pstat"><b>&mdash;</b><span>Live batches</span></div>
+      <div class="pstat"><b>&mdash;</b><span>Subjects</span></div>
+      <div class="pstat"><b>&mdash;</b><span>Areas</span></div>
+    </div>
+    <p class="proof-note center reveal">Counted live from the platform right now.</p>
+  </div>
+</section>
+
+
+<!-- ================= PROBLEM ================= -->
+<section class="problem" id="features">
+  <div class="shell">
+    <h2 class="h2 reveal">Teaching shouldn&rsquo;t require<br />10 different apps.</h2>
+    <p class="lede reveal">
+      Notes in one place. Classes in another. Payments in a notebook.
+      HelloStudents replaces all of it.
+    </p>
+
+    <div class="merge" id="merge">
+      <div class="scatter">
+        <span class="tool" data-x="-260" data-y="-70" data-r="-12">WhatsApp</span>
+        <span class="tool" data-x="230" data-y="-96" data-r="9">Google Drive</span>
+        <span class="tool" data-x="-300" data-y="66" data-r="7">Zoom</span>
+        <span class="tool" data-x="288" data-y="52" data-r="-8">Facebook</span>
+        <span class="tool" data-x="-140" data-y="120" data-r="14">Messenger</span>
+        <span class="tool" data-x="150" data-y="132" data-r="-11">Spreadsheets</span>
+      </div>
+      <div class="merged">
+        <span class="brand-mark big" aria-hidden="true"></span>
+        <b>One HelloStudents workspace</b>
+        <span>Everything your teaching needs, together.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= PRODUCT SHOWCASE ================= -->
+<section class="showcase" id="showcase">
+  <div class="shell">
+    <p class="kicker reveal">The teacher dashboard</p>
+    <h2 class="h2 reveal">Run your whole teaching operation<br />from one screen.</h2>
+
+    <div class="browser reveal">
+      <div class="dash-bar">
+        <i></i><i></i><i></i>
+        <div class="dash-url">hellostudents.com/dashboard</div>
+      </div>
+      <div class="dash-body tall">
+        <aside class="dash-side wide">
+          <span class="side-brand"></span>
+          <b class="on">Dashboard</b><b>Batches</b><b>Classes</b>
+          <b>Lectures</b><b>Students</b><b>Assignments</b>
+          <b>Payments</b><b>Analytics</b><b>Settings</b>
+        </aside>
+        <div class="dash-main">
+          <div class="dash-head">
+            <div>
+              <strong>Good morning, Rifat</strong>
+              <span>You have 3 classes and 12 new submissions</span>
+            </div>
+            <span class="pill">+ New batch</span>
+          </div>
+
+          <div class="panel-grid stagger">
+            <div class="panel">
+              <header>Today&rsquo;s classes</header>
+              <div class="row-item"><span class="tag t1"></span><b>HSC Physics — Morning</b><em>8:00</em></div>
+              <div class="row-item"><span class="tag t2"></span><b>Class 9 Maths</b><em>16:00</em></div>
+              <div class="row-item"><span class="tag t3"></span><b>ICT Crash Batch</b><em>19:30</em></div>
+            </div>
+            <div class="panel">
+              <header>Active batches</header>
+              <div class="bar-row"><span>HSC Physics</span><div class="bar"><i data-w="86"></i></div></div>
+              <div class="bar-row"><span>Class 9 Maths</span><div class="bar"><i data-w="62"></i></div></div>
+              <div class="bar-row"><span>ICT</span><div class="bar"><i data-w="41"></i></div></div>
+            </div>
+            <div class="panel">
+              <header>Revenue</header>
+              <b class="big-num">৳ 84,500</b>
+              <span class="sub-num up">+18% vs last month</span>
+              <div class="spark" aria-hidden="true">
+                <svg viewBox="0 0 200 60" preserveAspectRatio="none">
+                  <path d="M0,48 L28,42 L56,45 L84,30 L112,34 L140,18 L168,22 L200,8"
+                        fill="none" stroke="url(#sg)" stroke-width="2.5" stroke-linecap="round"/>
+                  <defs><linearGradient id="sg" x1="0" x2="1">
+                    <stop offset="0" stop-color="#635BFF"/><stop offset="1" stop-color="#38BDF8"/>
+                  </linearGradient></defs>
+                </svg>
+              </div>
+            </div>
+            <div class="panel">
+              <header>Student activity</header>
+              <div class="act"><span class="av">TA</span><span>Tanvir watched <b>Thermodynamics</b></span></div>
+              <div class="act"><span class="av">SK</span><span>Sadia submitted <b>Assignment 4</b></span></div>
+              <div class="act"><span class="av">IH</span><span>Imran joined <b>ICT Crash Batch</b></span></div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-  </main>
 
-  <script type="module" src="js/home.js"></script>
+<!-- ================= BATCH FIRST ================= -->
+<section class="batches" id="teachers">
+  <div class="shell">
+    <p class="kicker reveal">Batch-first by design</p>
+    <h2 class="h2 reveal">Teaching doesn&rsquo;t happen in courses.<br />It happens in batches.</h2>
+    <p class="lede reveal">
+      A batch is a real group of students, on real days, at a real time.
+      Everything else hangs off it.
+    </p>
 
+    <div class="batch-map reveal">
+      <svg class="wires" viewBox="0 0 900 420" preserveAspectRatio="xMidYMin meet" aria-hidden="true">
+        <g fill="none" stroke="url(#wg)" stroke-width="1.6">
+          <path d="M450,150 C450,190 200,180 150,250" />
+          <path d="M450,150 C450,190 330,190 300,250" />
+          <path d="M450,150 C450,200 450,200 450,250" />
+          <path d="M450,150 C450,190 570,190 600,250" />
+          <path d="M450,150 C450,190 700,180 750,250" />
+        </g>
+        <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#635BFF" stop-opacity=".85"/>
+          <stop offset="1" stop-color="#38BDF8" stop-opacity=".15"/>
+        </linearGradient></defs>
+      </svg>
+
+      <div class="batch-head">
+        <span class="chip">Batch</span>
+        <b>HSC Physics 2026</b>
+        <span class="muted">Morning Batch · Sun, Tue, Thu · 8:00–9:30 AM</span>
+        <div class="av-row">
+          <span class="av">TA</span><span class="av">SK</span>
+          <span class="av">IH</span><span class="av more">+39</span>
+          <span class="muted">42 students</span>
+        </div>
+      </div>
+
+      <div class="batch-kids stagger reveal">
+        <div class="kid"><span class="ki ki-live"></span>Live Classes</div>
+        <div class="kid"><span class="ki ki-lec"></span>Lectures</div>
+        <div class="kid"><span class="ki ki-asn"></span>Assignments</div>
+        <div class="kid"><span class="ki ki-att"></span>Attendance</div>
+        <div class="kid"><span class="ki ki-res"></span>Results</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= LIVE CLASS ================= -->
+<section class="live-sec">
+  <div class="shell split">
+    <div class="split-text reveal">
+      <p class="kicker">Live classes</p>
+      <h2 class="h2 sm">Teach live, without<br />sending anyone a link.</h2>
+      <p class="lede">
+        Your students are already inside the batch. Press start and they
+        are notified instantly — no links to chase, no strangers walking in.
+      </p>
+      <ul class="ticks">
+        <li>Camera, mic and screen share</li>
+        <li>Class chat that stays with the batch</li>
+        <li>Only paid students can enter</li>
+      </ul>
+    </div>
+
+    <div class="split-vis reveal">
+      <div class="room">
+        <div class="room-top">
+          <span class="live-pill"><span class="live-dot"></span>LIVE</span>
+          <b>HSC Physics — Thermodynamics</b>
+          <span class="timer">42:18</span>
+        </div>
+        <div class="room-main">
+          <div class="vtile big"><span class="av av-lg">RH</span><em>Rifat Hossain</em></div>
+          <div class="vtile"><span class="av">TA</span></div>
+          <div class="vtile"><span class="av">SK</span></div>
+          <div class="vtile"><span class="av">IH</span></div>
+          <div class="vtile"><span class="av">NA</span></div>
+        </div>
+        <div class="room-chat">
+          <div class="msg"><b>Sadia</b> Sir, slide 4 please</div>
+          <div class="msg mine">Sure, going back now</div>
+        </div>
+      </div>
+      <div class="float-tag tag-hand">&#9995; 3 hands raised</div>
+      <div class="float-tag tag-rec">Recording</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= LECTURE LIBRARY ================= -->
+<section class="library">
+  <div class="shell split reverse">
+    <div class="split-text reveal">
+      <p class="kicker">Lecture library</p>
+      <h2 class="h2 sm">Record once.<br />Teach for years.</h2>
+      <p class="lede">
+        Every class becomes a lecture your students can rewatch before the
+        exam — and a library that keeps earning while you sleep.
+      </p>
+      <ul class="ticks">
+        <li>Watch again for 30 days</li>
+        <li>Resume exactly where they stopped</li>
+        <li>Audio-only for slow connections</li>
+      </ul>
+    </div>
+
+    <div class="split-vis reveal">
+      <div class="vid-grid stagger">
+        <article class="vid">
+          <div class="vid-thumb"><span class="play"></span><em>18:42</em></div>
+          <b>Thermodynamics — First Law</b>
+          <span>Rifat Hossain</span>
+          <div class="prog"><i data-w="72"></i></div>
+        </article>
+        <article class="vid">
+          <div class="vid-thumb v2"><span class="play"></span><em>24:05</em></div>
+          <b>Vectors, Chapter 2</b>
+          <span>Nusrat Akter</span>
+          <div class="prog"><i data-w="35"></i></div>
+        </article>
+        <article class="vid">
+          <div class="vid-thumb v3"><span class="play"></span><em>31:10</em></div>
+          <b>Board Questions 2023</b>
+          <span>Rifat Hossain</span>
+          <div class="prog"><i data-w="100"></i></div>
+        </article>
+        <article class="vid">
+          <div class="vid-thumb v4"><span class="play"></span><em>12:58</em></div>
+          <b>ICT — Database Basics</b>
+          <span>Sakib Rahman</span>
+          <div class="prog"><i data-w="12"></i></div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= STUDENT ================= -->
+<section class="student-sec" id="students">
+  <div class="shell split">
+    <div class="split-text reveal">
+      <p class="kicker">For students</p>
+      <h2 class="h2 sm">Everything for the exam,<br />in one place.</h2>
+      <p class="lede">
+        No group chats to scroll. Students see the next class, the last
+        lecture and what they owe — nothing else.
+      </p>
+    </div>
+
+    <div class="split-vis reveal">
+      <div class="stu-card">
+        <div class="stu-head">
+          <span class="av av-lg">TA</span>
+          <div><b>Tanvir Ahmed</b><span>Class 12 · Science</span></div>
+          <span class="streak">&#128293; 12 day streak</span>
+        </div>
+
+        <p class="stu-label">Continue learning</p>
+        <div class="stu-row">
+          <span class="tag t1"></span>
+          <div><b>HSC Physics 2026</b><span>Thermodynamics · 62% done</span></div>
+        </div>
+        <div class="prog"><i data-w="62"></i></div>
+
+        <p class="stu-label">Upcoming class</p>
+        <div class="stu-row up-next">
+          <span class="live-dot"></span>
+          <div><b>Today, 8:00 AM</b><span>Morning Batch · 42 students</span></div>
+        </div>
+
+        <div class="stu-mini">
+          <div><b>6</b><span>Lectures left</span></div>
+          <div><b>2</b><span>Assignments</span></div>
+          <div><b>94%</b><span>Attendance</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= ACADEMY BUILDER ================= -->
+<section class="academy">
+  <div class="shell">
+    <p class="kicker reveal">Your own academy</p>
+    <h2 class="h2 reveal">Turn your teaching into<br />your own digital academy.</h2>
+    <p class="lede reveal">
+      Start with a profile. End with a website students can enrol and pay on.
+    </p>
+
+    <div class="build reveal" id="build">
+      <div class="build-step">
+        <span class="av av-lg">RH</span>
+        <b>Rifat Hossain</b><span>HSC Physics</span>
+      </div>
+      <span class="build-arrow">&rarr;</span>
+      <div class="build-step">
+        <b>+ Batches</b>
+        <div class="sk"></div><div class="sk short"></div>
+      </div>
+      <span class="build-arrow">&rarr;</span>
+      <div class="build-site">
+        <div class="dash-bar sm">
+          <i></i><i></i><i></i>
+          <div class="dash-url">rifat.hellostudents.com</div>
+        </div>
+        <div class="site-body">
+          <div class="site-hero">
+            <span class="av av-lg">RH</span>
+            <div><b>Rifat Hossain</b><span>HSC Physics · 8 years</span></div>
+            <span class="pill">Enrol ৳2,500</span>
+          </div>
+          <div class="site-cards">
+            <div class="sc"></div><div class="sc"></div><div class="sc"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="domain reveal">yourname<span>.hellostudents.com</span></p>
+  </div>
+</section>
+
+
+<!-- ================= GLOBAL ================= -->
+<section class="global">
+  <div class="shell">
+    <h2 class="h2 reveal center">Teach beyond the classroom.</h2>
+    <p class="lede center reveal">
+      Your students can learn from anywhere in the world.
+    </p>
+
+    <div class="globe-wrap reveal">
+      <svg class="globe" viewBox="0 0 620 620" aria-hidden="true">
+        <defs>
+          <radialGradient id="gg" cx="38%" cy="32%">
+            <stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/>
+            <stop offset="1" stop-color="#635BFF" stop-opacity=".04"/>
+          </radialGradient>
+          <linearGradient id="arc" x1="0" x2="1">
+            <stop offset="0" stop-color="#635BFF"/>
+            <stop offset="1" stop-color="#38BDF8"/>
+          </linearGradient>
+        </defs>
+
+        <circle cx="310" cy="310" r="230" fill="url(#gg)" stroke="#E4E4E7"/>
+        <g fill="none" stroke="#E4E4E7">
+          <ellipse cx="310" cy="310" rx="230" ry="78"/>
+          <ellipse cx="310" cy="310" rx="230" ry="150"/>
+          <ellipse cx="310" cy="310" rx="78"  ry="230"/>
+          <ellipse cx="310" cy="310" rx="150" ry="230"/>
+          <line x1="80" y1="310" x2="540" y2="310"/>
+        </g>
+
+        <g fill="none" stroke="url(#arc)" stroke-width="1.8" class="arcs">
+          <path d="M360,352 C300,250 220,215 178,232"/>
+          <path d="M360,352 C330,240 250,150 214,148"/>
+          <path d="M360,352 C420,250 470,215 502,236"/>
+          <path d="M360,352 C400,240 420,170 398,140"/>
+          <path d="M360,352 C300,300 250,300 214,148"/>
+          <path d="M360,352 C420,400 470,420 486,430"/>
+        </g>
+
+        <g class="pins">
+          <circle cx="360" cy="352" r="7" class="pin home"/>
+          <circle cx="178" cy="232" r="4.5" class="pin"/>
+          <circle cx="214" cy="148" r="4.5" class="pin"/>
+          <circle cx="502" cy="236" r="4.5" class="pin"/>
+          <circle cx="398" cy="140" r="4.5" class="pin"/>
+          <circle cx="486" cy="430" r="4.5" class="pin"/>
+        </g>
+      </svg>
+
+      <div class="flags stagger reveal">
+        <span>Bangladesh</span><span>India</span><span>UAE</span>
+        <span>UK</span><span>USA</span><span>Canada</span><span>Australia</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= PRICING ================= -->
+<section class="pricing" id="pricing">
+  <div class="shell">
+    <h2 class="h2 center reveal">Simple pricing.<br />Start free.</h2>
+
+    <div class="toggle reveal" id="toggle">
+      <button class="on" data-plan="month" type="button">Monthly</button>
+      <button data-plan="year" type="button">Yearly <em>−20%</em></button>
+    </div>
+
+    <div class="plans reveal stagger">
+      <article class="plan">
+        <h3>Starter</h3>
+        <p class="plan-for">For teachers getting started.</p>
+        <div class="plan-price"><b>Free</b></div>
+        <a class="btn btn-ghost btn-block" href="register.html">Start free</a>
+        <ul class="ticks">
+          <li>1 batch</li>
+          <li>Live classes</li>
+          <li>Class chat</li>
+          <li>Up to 20 students</li>
+        </ul>
+      </article>
+
+      <article class="plan pro">
+        <span class="plan-badge">Coming soon</span>
+        <h3>Pro</h3>
+        <p class="plan-for">For growing teachers and coaching centres.</p>
+        <div class="plan-price">
+          <b>৳<span id="price">799</span></b><span id="per">/month</span>
+        </div>
+        <button class="btn btn-block" type="button" disabled>
+          Not available yet
+        </button>
+        <p class="hint center mt-sm">
+          Billing is not built yet. Start on the free plan and you can
+          move across when Pro opens.
+        </p>
+        <ul class="ticks">
+          <li>Unlimited batches and students</li>
+          <li>Lecture library and recordings</li>
+          <li>Your own academy website</li>
+          <li>Payments and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= TESTIMONIALS ================= -->
+<section class="voices" id="resources">
+  <div class="shell">
+    <h2 class="h2 center reveal">How teachers plan to use it.</h2>
+    <p class="lede center reveal">
+      HelloStudents is newly launched. The notes below are written
+      examples of the problems it sets out to solve &mdash; not
+      quotes from real customers.
+    </p>
+
+    <div class="cards reveal stagger">
+      <figure class="voice r1">
+        <blockquote>I stopped chasing fees in WhatsApp. Everything is just there now.</blockquote>
+        <figcaption><span class="av">RH</span><div><b>Rifat Hossain</b><span>HSC Physics · Dhanmondi</span></div></figcaption>
+      </figure>
+      <figure class="voice r2">
+        <blockquote>Two of my students are in Dubai. They never miss a class.</blockquote>
+        <figcaption><span class="av">NA</span><div><b>Nusrat Akter</b><span>Mathematics · Uttara</span></div></figcaption>
+      </figure>
+      <figure class="voice r3">
+        <blockquote>My recordings earn more than my Friday batch did.</blockquote>
+        <figcaption><span class="av">SR</span><div><b>Sakib Rahman</b><span>ICT · Chattogram</span></div></figcaption>
+      </figure>
+      <figure class="voice r4">
+        <blockquote>Setting up took one evening. I am not a technical person at all.</blockquote>
+        <figcaption><span class="av">TK</span><div><b>Tanzila Karim</b><span>English · Mirpur</span></div></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= FINAL CTA ================= -->
+<section class="finale">
+  <div class="orb orb-c" aria-hidden="true"></div>
+  <div class="orb orb-d" aria-hidden="true"></div>
+  <div class="grid-fade dark" aria-hidden="true"></div>
+
+  <span class="frag f1" aria-hidden="true"></span>
+  <span class="frag f2" aria-hidden="true"></span>
+  <span class="frag f3" aria-hidden="true"></span>
+
+  <div class="shell finale-inner reveal">
+    <h2 class="h2 xl">
+      Your students are already online.<br />
+      <span class="grad">Now your classroom can be too.</span>
+    </h2>
+    <a class="btn btn-lg" href="register.html">
+      Create Your Teaching Platform <span class="arrow">&rarr;</span>
+    </a>
+    <p class="hero-note">Free to start <span class="sep">·</span> No card needed</p>
+  </div>
+</section>
+
+
+<!-- ================= FOOTER ================= -->
+<footer class="foot">
+  <div class="shell foot-inner">
+    <div class="foot-brand">
+      <a class="brand" href="#top">
+        <span class="brand-mark" aria-hidden="true"></span> Hello&nbsp;Students
+      </a>
+      <p>The modern operating system for teachers.</p>
+    </div>
+
+    <nav class="foot-cols">
+      <div>
+        <h4>Product</h4>
+        <a href="#features">Features</a><a href="#pricing">Pricing</a>
+        <a href="browse.html">Find a batch</a><a href="register.html">Start teaching</a>
+      </div>
+      <div>
+        <h4>For Teachers</h4>
+        <a href="register.html">Create your account</a>
+        <a href="help.html#teachers">How batches work</a>
+        <a href="login.html">Teacher dashboard</a>
+      </div>
+      <div>
+        <h4>Resources</h4>
+        <a href="help.html">Help centre</a>
+        <a href="help.html#students">Student guide</a>
+        <a href="help.html#payments">Payments</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="help.html#about">About</a>
+        <a href="help.html#contact">Contact</a>
+        <a href="help.html#privacy">Privacy</a>
+        <a href="help.html#terms">Terms</a>
+      </div>
+    </nav>
+  </div>
+  <div class="shell foot-base">
+    <span>© 2026 HelloStudents</span>
+    <span>Made for teachers in Bangladesh and beyond.</span>
+  </div>
+</footer>
+
+</main>
+
+<script type="module" src="js/landing.js?v=3"></script>
 </body>
 </html>

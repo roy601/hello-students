@@ -11,15 +11,9 @@
 
 import { supabase } from './supabase.js';
 import { renderTopbar } from './session.js';
-import { toast, busy, renderPageHero, setupReveal } from './ui.js';
+import { toast, busy } from './ui.js';
 
 renderTopbar();
-  renderPageHero({
-    eyebrow: 'Join HelloStudents',
-    title: 'Create your account',
-    subtitle: 'One account works for both learning and teaching.',
-  });
-  setupReveal();
 
 const form = document.getElementById('register-form');
 const submitBtn = document.getElementById('submit-btn');

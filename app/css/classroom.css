@@ -1,0 +1,535 @@
+/* ============================================================
+   CLASSROOM
+   Everything inside one batch: the banner, the tabs, the class
+   wall, the classwork list and the people list.
+
+   Loaded only by batch-room.html. It uses the same tokens as
+   style.css, so the colours and corners match the rest of the
+   site without repeating them here.
+   ============================================================ */
+
+
+/* ---- the banner across the top ---------------------------- */
+.class-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  padding: var(--gap-md) var(--gap-md);
+  margin-bottom: var(--gap);
+  background: var(--grad);
+  color: #fff;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap);
+  min-height: 150px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* a soft light in the corner so the flat gradient has depth */
+.class-banner::after {
+  content: '';
+  position: absolute;
+  right: -60px;
+  top: -90px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .16);
+  pointer-events: none;
+}
+
+.class-banner-text { position: relative; z-index: 1; }
+.class-banner h1 { color: #fff; margin: 2px 0 6px; }
+
+.class-subject {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .82);
+  margin: 0;
+}
+
+.class-meta {
+  margin: 0;
+  color: rgba(255, 255, 255, .9);
+  font-size: 14px;
+}
+
+.class-banner-side { position: relative; z-index: 1; }
+
+
+/* ---- the row of tabs -------------------------------------- */
+.class-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--gap);
+  overflow-x: auto;
+}
+
+.class-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  border-radius: 10px 10px 0 0;
+  transition: color .15s ease, background .15s ease;
+}
+
+.class-tab:hover { color: var(--ink); background: var(--surface-2); }
+
+.class-tab.on {
+  color: var(--indigo);
+  border-bottom-color: var(--indigo);
+}
+
+.class-tab svg { flex: 0 0 auto; }
+
+/* ---- hidden really means hidden --------------------------
+   This page hides things with the plain HTML "hidden"
+   attribute: closed tabs, the composer once it is open, the
+   due-date fields when the tutor is posting material.
+
+   The browser hides those with display: none, but ANY class
+   that sets display beats it. .grid-2 sets display: grid and
+   .composer-shut sets display: flex, so without the rule
+   below both would stay stubbornly on screen. */
+[hidden] { display: none !important; }
+
+/* Holds the page height steady so it does not jump about when
+   you move from a short tab like People to a long one like
+   Stream. */
+.tab-pane { min-height: 320px; }
+
+
+/* ---- small helpers this file needs ------------------------ */
+.ico-sm { width: 17px; height: 17px; stroke-width: 1.8; }
+
+.avatar-sm { width: 26px; height: 26px; font-size: 10px; }
+
+/* the teacher's circle is darker so you can pick it out */
+.avatar-brand {
+  background: linear-gradient(140deg, var(--indigo-deep), var(--indigo));
+}
+
+.field.grow { flex: 1 1 220px; }
+
+
+/* ============================================================
+   THE STREAM
+   ============================================================ */
+.stream { max-width: 760px; }
+
+/* ---- the box you type a note into ------------------------- */
+.composer { padding: 0; margin-bottom: var(--gap); overflow: hidden; }
+
+.composer-shut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px var(--gap-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.composer-shut:hover { background: var(--surface-2); }
+.composer-hint { color: var(--muted); font-size: 15px; }
+.composer-body { padding: var(--gap-md); }
+
+
+/* ---- one note on the wall --------------------------------- */
+.post { padding: 0; margin-bottom: var(--gap); }
+
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--gap-md) var(--gap-md) 10px;
+}
+
+.post-who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+.post-name {
+  font-weight: 650;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.post-when { font-size: 12.5px; color: var(--muted); }
+
+.tag-teacher {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--indigo-soft);
+  color: var(--indigo-deep);
+}
+
+/* the small x that deletes a post, quiet until you hover it */
+.post-x,
+.cmt-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 8px;
+  line-height: 0;
+  opacity: 0;
+  transition: opacity .15s ease, background .15s ease;
+}
+
+.post:hover .post-x,
+.cmt:hover .cmt-x,
+.post-x:focus-visible,
+.cmt-x:focus-visible { opacity: 1; }
+
+.post-x:hover,
+.cmt-x:hover { background: var(--danger-bg); color: var(--danger); }
+
+/* the strip that says this note is work or material */
+.post-kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--gap-md) 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 650;
+  background: var(--indigo-soft);
+  color: var(--indigo-deep);
+}
+
+.post-kind.material { background: var(--info-bg); color: var(--info); }
+
+.post-due {
+  margin-left: auto;
+  font-weight: 600;
+  opacity: .85;
+}
+
+.post-title {
+  margin: 0 var(--gap-md) 8px;
+  font-size: 17px;
+}
+
+.post-text {
+  margin: 0 var(--gap-md) 12px;
+  color: var(--ink-2);
+  line-height: 1.65;
+  white-space: pre-wrap;     /* keeps the writer's line breaks */
+  word-break: break-word;
+}
+
+.post-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--gap-md) var(--gap-sm);
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: none;
+  max-width: calc(100% - var(--gap-md) * 2);
+  overflow: hidden;
+}
+
+.post-link:hover { border-color: var(--indigo); color: var(--indigo); }
+
+
+/* ---- the replies under a note ----------------------------- */
+.post-foot {
+  border-top: 1px solid var(--line-2);
+  padding: 12px var(--gap-md);
+}
+
+.cmt-count {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+
+.cmt-list:not(:empty) { margin-bottom: 4px; }
+
+.cmt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.cmt-body { flex: 1; min-width: 0; font-size: 14px; }
+.cmt-name { font-weight: 650; margin-right: 7px; }
+.cmt-text { color: var(--ink-2); word-break: break-word; }
+
+.cmt-when {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.cmt-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cmt-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--surface);
+}
+
+.cmt-form input:focus {
+  outline: none;
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, .13);
+}
+
+
+/* ============================================================
+   CLASSWORK
+   ============================================================ */
+.cw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  margin-bottom: var(--gap);
+}
+
+.cw-head .lead { margin: 0; }
+
+.cw-item { padding: 0; margin-bottom: 10px; overflow: hidden; }
+
+/* the whole row is the button that opens the work */
+.cw-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px var(--gap-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.cw-row:hover { background: var(--surface-2); }
+
+.cw-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--indigo-soft);
+  color: var(--indigo-deep);
+}
+
+.cw-ico.material { background: var(--info-bg); color: var(--info); }
+
+.cw-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.cw-title {
+  font-weight: 650;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cw-meta { font-size: 12.5px; color: var(--muted); }
+.cw-state { flex: 0 0 auto; }
+
+.cw-detail {
+  border-top: 1px solid var(--line-2);
+  padding: var(--gap-md) 0 var(--gap-md);
+}
+
+/* the detail reuses .post-text and .post-link, which carry
+   their own side margin, so nothing extra is needed here */
+.cw-detail > .btn { margin-left: var(--gap-md); }
+
+
+/* ---- handing work in -------------------------------------- */
+.hand-in {
+  margin: var(--gap-sm) var(--gap-md) 0;
+  padding: var(--gap);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.hand-in h4 { margin: 0 0 4px; font-size: 15px; }
+.hand-in .hint { margin-bottom: 10px; }
+
+.hand-in.done {
+  background: var(--success-bg);
+  border-color: rgba(21, 128, 61, .22);
+}
+
+.marks-big {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--success);
+  margin: 6px 0 10px;
+  letter-spacing: -.02em;
+}
+
+.marks-big small {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+.hand-in .post-text,
+.hand-in .hint { margin-left: 0; margin-right: 0; }
+
+
+/* ---- marking what came in --------------------------------- */
+.marking { margin: 0 var(--gap-md); }
+
+.mark-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--gap);
+  margin-bottom: 10px;
+  background: var(--surface);
+}
+
+.mark-row.done {
+  background: var(--success-bg);
+  border-color: rgba(21, 128, 61, .22);
+}
+
+.mark-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mark-row .post-text,
+.mark-row .post-link { margin-left: 0; margin-right: 0; }
+
+.mark-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.mark-fields .field { margin: 0; }
+.mark-fields .field:first-child { width: 120px; flex: 0 0 auto; }
+
+
+/* ============================================================
+   PEOPLE
+   ============================================================ */
+.people-block { max-width: 640px; padding: 0; }
+
+.people-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: var(--gap) var(--gap-md);
+  border-bottom: 2px solid var(--indigo);
+}
+
+.people-head h2 { margin: 0; font-size: 18px; color: var(--indigo); }
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px var(--gap-md);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.person:last-child { border-bottom: none; }
+
+.person-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.person-name { font-weight: 600; font-size: 14.5px; }
+.person-note { font-size: 12.5px; color: var(--muted); }
+
+.person-phone {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--indigo);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.person-phone:hover { text-decoration: underline; }
+
+
+/* ============================================================
+   SMALL SCREENS
+   ============================================================ */
+@media (max-width: 720px) {
+  .class-banner {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .class-tab { padding: 11px 12px; }
+  .class-tab span { display: none; }        /* icons only, so all four fit */
+  .class-tab.on span { display: inline; }   /* except the open one */
+
+  .post-head,
+  .composer-shut,
+  .cw-row { padding-left: var(--gap); padding-right: var(--gap); }
+
+  .post-kind,
+  .post-title,
+  .post-text,
+  .post-link,
+  .marking,
+  .hand-in { margin-left: var(--gap); margin-right: var(--gap); }
+
+  .post-foot { padding-left: var(--gap); padding-right: var(--gap); }
+
+  .mark-fields .field:first-child { width: 100%; }
+}

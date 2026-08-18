@@ -6,6 +6,7 @@
 import { supabase } from './supabase.js';
 import { icon } from './icons.js';
 import { initials, safe, timeAgo } from './format.js';
+import { setupScrollProgress } from './ui.js';
 
 // Remembers the profile during one page visit so we do not
 // ask the database for the same thing again and again.
@@ -105,7 +106,7 @@ export async function renderTopbar(activePage = '') {
 
   const rightSide = profile
     ? `
-      <button class="bell" id="bell-btn" title="Notifications" aria-label="Notifications">
+      <button class="bell" id="bell-btn" type="button" title="Notifications" aria-label="Notifications">
         ${icon('bell')}<span class="bell-dot" id="bell-dot" hidden>0</span>
       </button>
       <div class="nav-user">
@@ -120,17 +121,19 @@ export async function renderTopbar(activePage = '') {
 
   holder.innerHTML = `
     <header class="topbar">
-      <div class="topbar-inner">
-        <a class="logo" href="index.html">HelloStudents</a>
+      <div class="topbar-inner" id="topbar-inner">
+        <a class="logo" href="index.html">
+          <span class="logo-mark" aria-hidden="true"></span> HelloStudents
+        </a>
         <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu">&#9776;</button>
         <nav class="nav" id="main-nav">
           ${linksHtml}
           ${rightSide}
         </nav>
-      </div>
-      <div class="dropdown" id="notif-box" hidden>
-        <div class="dropdown-head">Notifications</div>
-        <div id="notif-list"></div>
+        <div class="dropdown" id="notif-box" hidden>
+          <div class="dropdown-head">Notifications</div>
+          <div id="notif-list"></div>
+        </div>
       </div>
     </header>`;
 
@@ -138,6 +141,15 @@ export async function renderTopbar(activePage = '') {
   document.getElementById('menu-btn').addEventListener('click', () => {
     document.getElementById('main-nav').classList.toggle('open');
   });
+
+  // a reading progress line along the very top of the page
+  if (!document.getElementById('scroll-progress')) setupScrollProgress();
+
+  // the bar tightens once the page scrolls, like the landing page
+  const bar = document.getElementById('topbar-inner');
+  const onScroll = () => bar.classList.toggle('tight', window.scrollY > 40);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
   if (profile) {
     document.getElementById('logout-btn').addEventListener('click', logout);

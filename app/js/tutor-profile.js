@@ -8,7 +8,8 @@
 
 import { supabase } from './supabase.js';
 import { renderTopbar, requireRole } from './session.js';
-import { toast, busy, confirmBox, renderPageHero, setupReveal } from './ui.js';
+import { toast, busy, confirmBox, showLoading,
+         renderPageHero, setupReveal } from './ui.js';
 import { safe } from './format.js';
 
 const statusArea = document.getElementById('status-area');
@@ -136,6 +137,8 @@ aboutForm.addEventListener('submit', async (event) => {
 
 // ---- Certificates ------------------------------------------
 async function loadCredentials() {
+  showLoading(credList, 1);
+
   const { data: creds } = await supabase
     .from('tutor_credentials')
     .select('*')

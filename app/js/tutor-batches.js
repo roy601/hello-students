@@ -9,7 +9,8 @@
 
 import { supabase } from './supabase.js';
 import { renderTopbar, requireRole } from './session.js';
-import { toast, busy, confirmBox, showEmpty, renderPageHero, setupReveal } from './ui.js';
+import { toast, busy, confirmBox, showEmpty, showLoading,
+         renderPageHero, setupReveal } from './ui.js';
 import { formatTime, taka, safe } from './format.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -109,6 +110,8 @@ async function checkApproval() {
 
 // ---- The tutor's own batches -------------------------------
 async function loadMyBatches() {
+  showLoading(batchList, 2);
+
   const { data: batches, error } = await supabase
     .from('batches')
     .select(`

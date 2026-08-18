@@ -1,11 +1,22 @@
 // ============================================================
 //  BATCH CLASS ROOM
 //
-//  Left side  : the live class, in one of three modes
+//  One batch, four tabs, the way a classroom works:
+//
+//    Stream     the class wall — announcements and replies,
+//               so the tutor and the students can talk
+//    Classwork  work the tutor sets, hands in and marks
+//    People     who is in this batch
+//    Live       the live video class, in one of three modes
 //                 jitsi  video in our page, whole batch
 //                 p2p    our own WebRTC, browser to browser
 //                 link   the tutor's own Zoom or Meet link
-//  Right side : the class chat, live for everyone
+//               plus the chat that runs beside it
+//
+//  This file owns the room: it checks you are allowed in,
+//  draws the header and the tabs, and runs the live side.
+//  The other three tabs live in their own files so no single
+//  file gets too long to follow.
 //
 //  Only people who belong to this batch can open this page.
 //  The database checks that too (can_access_batch in
@@ -20,6 +31,9 @@ import { safe, initials, timeAgo, formatTime } from './format.js';
 import { startJitsi, stopJitsi } from './jitsi.js';
 import { createCall } from './webrtc.js';
 import { attachWatermark, makeLabel } from './watermark.js';
+import { mountStream, stopStream } from './stream.js';
+import { mountClasswork } from './classwork.js';
+import { mountPeople } from './people.js';
 
 const room = document.getElementById('room');
 const batchId = Number(new URLSearchParams(window.location.search).get('id'));
@@ -99,24 +113,118 @@ async function loadBatch() {
 
 // ============================================================
 //  THE PAGE
+//
+//  A banner with the class name on it, a row of tabs, and one
+//  panel per tab. Only the open panel is shown; the others are
+//  still in the page, which is what lets the live class keep
+//  running while you read the wall.
 // ============================================================
+const TABS = [
+  ['stream', 'Stream', 'chat'],
+  ['classwork', 'Classwork', 'book'],
+  ['people', 'People', 'users'],
+  ['live', 'Live class', 'video'],
+];
+
+//  which tabs have been drawn already, so we only build each
+//  one the first time it is opened
+const built = new Set();
+let currentTab = null;
+
 function drawPage() {
   const tutorName = batch.tutor_profiles?.profiles?.full_name || 'Tutor';
 
   room.innerHTML = `
     <p class="mb"><a href="batch.html?id=${batchId}">&#8592; Back to batch details</a></p>
 
-    <div class="page-head reveal">
-      <div>
+    <header class="class-banner">
+      <div class="class-banner-text">
+        <p class="class-subject">${safe(batch.subjects.name_en)} · ${safe(batch.subjects.grade_level)}</p>
         <h1>${safe(batch.title)}</h1>
-        <p class="lead">
-          ${safe(batch.subjects.name_en)} · ${safe(batch.days)} ·
-          ${formatTime(batch.start_time)}–${formatTime(batch.end_time)} · with ${safe(tutorName)}
+        <p class="class-meta">
+          ${safe(batch.days)} ·
+          ${formatTime(batch.start_time)}–${formatTime(batch.end_time)} ·
+          with ${safe(tutorName)}
         </p>
       </div>
-      <div id="live-badge"></div>
-    </div>
+      <div class="class-banner-side" id="live-badge"></div>
+    </header>
 
+    <nav class="class-tabs" role="tablist">
+      ${TABS.map(
+        ([key, label, ico]) => `
+        <button type="button" class="class-tab" role="tab"
+                id="tab-btn-${key}" data-tab="${key}"
+                aria-controls="tab-${key}" aria-selected="false">
+          ${icon(ico, 'ico-sm')} <span>${label}</span>
+        </button>`
+      ).join('')}
+    </nav>
+
+    ${TABS.map(
+      ([key]) => `
+      <section class="tab-pane" id="tab-${key}" role="tabpanel"
+               aria-labelledby="tab-btn-${key}" hidden></section>`
+    ).join('')}`;
+
+  //  the live class panel is built now, not when it is opened,
+  //  because a class that is already running must be joined
+  //  straight away even if you are looking at another tab
+  buildLiveTab();
+  built.add('live');
+
+  document.querySelectorAll('[data-tab]').forEach((button) =>
+    button.addEventListener('click', () => openTab(button.dataset.tab))
+  );
+
+  //  a link may name the tab. Otherwise: if the class is
+  //  running right now that is what you came for, so start
+  //  there, and if not, start on the wall.
+  const asked = new URLSearchParams(window.location.search).get('tab');
+  const known = TABS.some(([key]) => key === asked);
+
+  openTab(known ? asked : batch.is_live ? 'live' : 'stream');
+}
+
+async function openTab(key) {
+  if (currentTab === key) return;
+  currentTab = key;
+
+  TABS.forEach(([name]) => {
+    const pane = document.getElementById('tab-' + name);
+    const button = document.getElementById('tab-btn-' + name);
+    const on = name === key;
+
+    pane.hidden = !on;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+
+  //  remember the tab in the address bar, so a refresh or a
+  //  shared link comes back to the same place
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', key);
+  window.history.replaceState({}, '', url);
+
+  //  a hidden box has no height, so the chat could not scroll
+  //  while the live tab was closed. Put it right now it is open.
+  if (key === 'live') scrollToBottom();
+
+  if (built.has(key)) return;
+  built.add(key);
+
+  const pane = document.getElementById('tab-' + key);
+  const context = { batchId, me, isTutor, tutorId: batch.tutor_id, batch };
+
+  if (key === 'stream') await mountStream(pane, context);
+  if (key === 'classwork') await mountClasswork(pane, context);
+  if (key === 'people') await mountPeople(pane, context);
+}
+
+//  The live video and the chat beside it. This is what the
+//  whole page used to be.
+function buildLiveTab() {
+  document.getElementById('tab-live').innerHTML = `
     <div class="room-grid">
       <section class="card" id="class-card"></section>
 
@@ -127,9 +235,11 @@ function drawPage() {
         </div>
         <div class="chat-list" id="chat-list"></div>
         <form class="chat-form" id="chat-form">
+          <label class="sr-only" for="chat-input">Message</label>
           <input id="chat-input" type="text" maxlength="1000" autocomplete="off"
+                 aria-label="Write a message to the class"
                  placeholder="Write a message..." />
-          <button class="btn" type="submit">Send</button>
+          <button class="btn" type="submit" id="chat-send">Send</button>
         </form>
       </section>
     </div>`;
@@ -540,16 +650,20 @@ async function sendMessage(event) {
   event.preventDefault();
 
   const input = document.getElementById('chat-input');
+  const send = document.getElementById('chat-send');
   const text = input.value.trim();
-  if (text === '') return;
+  if (text === '' || send.disabled) return;   // stops double sends
 
   input.value = '';
+  send.disabled = true;
 
   const { error } = await supabase.from('messages').insert({
     batch_id: batchId,
     sender_id: me.id,
     body: text,
   });
+
+  send.disabled = false;
 
   if (error) {
     toast(error.message, 'error');
@@ -608,5 +722,6 @@ function scrollToBottom() {
 // Hang up and close the channels when the page is left.
 window.addEventListener('beforeunload', () => {
   closeClass();
+  stopStream();
   if (chatChannel) supabase.removeChannel(chatChannel);
 });

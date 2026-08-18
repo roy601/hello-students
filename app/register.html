@@ -4,56 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Register — HelloStudents</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body>
 
   <div id="topbar"></div>
-  <div id="page-hero"></div>
 
-  <main class="page narrow">
-        
-    <form id="register-form" class="card form">
-
-      <div class="field">
-        <label for="full-name">Full name</label>
-        <input id="full-name" type="text" required placeholder="Rifat Hossain" />
+  <main class="auth">
+    <div class="auth-card">
+      <div class="auth-head">
+        <a class="logo" href="index.html">
+          <span class="logo-mark" aria-hidden="true"></span> HelloStudents
+        </a>
+        <h1>Create your account</h1>
+        <p>One account works for both learning and teaching.</p>
       </div>
 
-      <div class="field">
-        <label for="phone">Phone number</label>
-        <input id="phone" type="tel" placeholder="01712345678" />
-      </div>
+      <form id="register-form" class="card form">
+        <div class="field">
+          <label for="full-name">Full name</label>
+          <input id="full-name" type="text" required placeholder="Rifat Hossain" />
+        </div>
 
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" required placeholder="you@example.com" />
-      </div>
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input id="phone" type="tel" placeholder="01712345678" />
+        </div>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" required minlength="6"
-               placeholder="At least 6 characters" />
-      </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" required placeholder="you@example.com" />
+        </div>
 
-      <div class="field">
-        <label for="role">I want to</label>
-        <select id="role">
-          <option value="student">Join batches as a student</option>
-          <option value="tutor">Teach and open my own batches</option>
-        </select>
-        <p class="hint">Tutors are checked by our team before their batches go live.</p>
-      </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="6"
+                 placeholder="At least 6 characters" />
+        </div>
 
-      <button class="btn btn-block" type="submit" id="submit-btn">Create account</button>
-    </form>
+        <div class="field">
+          <label for="role">I want to</label>
+          <select id="role">
+            <option value="student">Join batches as a student</option>
+            <option value="tutor">Teach and open my own batches</option>
+          </select>
+          <p class="hint">Tutors are checked by our team before their batches go live.</p>
+        </div>
 
-    <p class="muted center mt">
-      Already have an account? <a href="login.html">Log in</a>
-    </p>
+        <button class="btn btn-block btn-lg" type="submit" id="submit-btn">Create account</button>
+      </form>
+
+      <p class="auth-foot">Already have an account? <a href="login.html">Log in</a></p>
+    </div>
   </main>
 
-  <script type="module" src="js/register.js"></script>
+  <script type="module" src="js/register.js?v=3"></script>
 
 </body>
 </html>

@@ -4,36 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Log in — HelloStudents</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body>
 
   <div id="topbar"></div>
-  <div id="page-hero"></div>
 
-  <main class="page narrow">
-        
-    <form id="login-form" class="card form">
-
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" required placeholder="you@example.com" />
+  <main class="auth">
+    <div class="auth-card">
+      <div class="auth-head">
+        <a class="logo" href="index.html">
+          <span class="logo-mark" aria-hidden="true"></span> HelloStudents
+        </a>
+        <h1>Welcome back</h1>
+        <p>Log in to your teaching platform.</p>
       </div>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" required placeholder="Your password" />
-      </div>
+      <form id="login-form" class="card form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" required placeholder="you@example.com" />
+        </div>
 
-      <button class="btn btn-block" type="submit" id="submit-btn">Log in</button>
-    </form>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" required placeholder="Your password" />
+        </div>
 
-    <p class="muted center mt">
-      New here? <a href="register.html">Create an account</a>
-    </p>
+        <button class="btn btn-block btn-lg" type="submit" id="submit-btn">Log in</button>
+      </form>
+
+      <p class="auth-foot">New here? <a href="register.html">Create an account</a></p>
+    </div>
   </main>
 
-  <script type="module" src="js/login.js"></script>
+  <script type="module" src="js/login.js?v=3"></script>
 
 </body>
 </html>
