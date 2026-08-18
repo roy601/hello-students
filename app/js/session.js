@@ -95,6 +95,7 @@ export async function renderTopbar(activePage = '') {
   } else if (profile?.role === 'admin') {
     links.push({ href: 'admin-dashboard.html', label: 'Overview' });
     links.push({ href: 'admin-tutors.html', label: 'Tutor approvals' });
+    links.push({ href: 'admin-disputes.html', label: 'Complaints' });
   }
 
   const linksHtml = links

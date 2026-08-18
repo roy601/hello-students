@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complaints — HelloStudents</title>
+  <link rel="stylesheet" href="css/style.css?v=4" />
+</head>
+<body>
+
+  <div id="topbar"></div>
+  <div id="page-hero"></div>
+
+  <main class="page">
+
+    <section class="grid-4 mb-md stagger" id="dispute-stats"></section>
+
+    <div class="card mb-md">
+      <div class="card-head">
+        <h2>Waiting for a decision</h2>
+        <span class="badge badge-warning" id="open-count">—</span>
+      </div>
+      <div id="open-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Already settled</h2>
+      </div>
+      <div id="closed-list"></div>
+    </div>
+
+  </main>
+
+  <script type="module" src="js/admin-disputes.js?v=4"></script>
+
+</body>
+</html>

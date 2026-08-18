@@ -1,11 +1,12 @@
 // ============================================================
 //  BATCH CLASS ROOM
 //
-//  One batch, four tabs, the way a classroom works:
+//  One batch, five tabs, the way a classroom works:
 //
 //    Stream     the class wall — announcements and replies,
 //               so the tutor and the students can talk
 //    Classwork  work the tutor sets, hands in and marks
+//    Recordings classes uploaded to watch again
 //    People     who is in this batch
 //    Live       the live video class, in one of three modes
 //                 jitsi  video in our page, whole batch
@@ -15,7 +16,7 @@
 //
 //  This file owns the room: it checks you are allowed in,
 //  draws the header and the tabs, and runs the live side.
-//  The other three tabs live in their own files so no single
+//  The other four tabs live in their own files so no single
 //  file gets too long to follow.
 //
 //  Only people who belong to this batch can open this page.
@@ -34,6 +35,7 @@ import { attachWatermark, makeLabel } from './watermark.js';
 import { mountStream, stopStream } from './stream.js';
 import { mountClasswork } from './classwork.js';
 import { mountPeople } from './people.js';
+import { mountRecordings, stopRecordings } from './recordings.js';
 
 const room = document.getElementById('room');
 const batchId = Number(new URLSearchParams(window.location.search).get('id'));
@@ -122,6 +124,7 @@ async function loadBatch() {
 const TABS = [
   ['stream', 'Stream', 'chat'],
   ['classwork', 'Classwork', 'book'],
+  ['recordings', 'Recordings', 'video'],
   ['people', 'People', 'users'],
   ['live', 'Live class', 'video'],
 ];
@@ -219,6 +222,7 @@ async function openTab(key) {
   if (key === 'stream') await mountStream(pane, context);
   if (key === 'classwork') await mountClasswork(pane, context);
   if (key === 'people') await mountPeople(pane, context);
+  if (key === 'recordings') await mountRecordings(pane, context);
 }
 
 //  The live video and the chat beside it. This is what the
@@ -723,5 +727,6 @@ function scrollToBottom() {
 window.addEventListener('beforeunload', () => {
   closeClass();
   stopStream();
+  stopRecordings();
   if (chatChannel) supabase.removeChannel(chatChannel);
 });

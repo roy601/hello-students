@@ -1,19 +1,22 @@
 // ============================================================
 //  STUDENT DASHBOARD
 //
-//  Lists the batches this student joined, and lets them leave
-//  a review for each one.
+//  Lists the batches this student joined, lets them leave a
+//  review for each one, and lets them report a problem if
+//  something went wrong.
 // ============================================================
 
 import { supabase } from './supabase.js';
 import { renderTopbar, requireRole } from './session.js';
-import { toast, showLoading, showEmpty, renderPageHero, setupReveal } from './ui.js';
+import { toast, busy, showLoading, showEmpty, renderPageHero,
+         setupReveal } from './ui.js';
 import { formatTime, taka, formatDate, stars, safe } from './format.js';
 
 const statsBox = document.getElementById('stats');
 const classesBox = document.getElementById('classes');
 
 let me = null;
+let disputes = new Map();   // enrolment id -> the complaint on it
 
 start();
 
@@ -50,6 +53,10 @@ async function loadClasses() {
       )
     `)
     .eq('student_id', me.id)
+    //  A refunded class is set to 'left', so leaving it out
+    //  keeps it from being counted in "batches joined" and
+    //  "paid in total" when the money has gone back.
+    .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -78,6 +85,8 @@ async function loadClasses() {
     return;
   }
 
+  await loadDisputes(rows.map((r) => r.id));
+
   classesBox.innerHTML = rows
     .map((row) => classHtml(row, reviewed.get(row.id)))
     .join('');
@@ -86,6 +95,25 @@ async function loadClasses() {
   classesBox.querySelectorAll('[data-review]').forEach((button) => {
     button.addEventListener('click', () => openReview(button.dataset.review));
   });
+
+  // ...and every "Report a problem" button.
+  classesBox.querySelectorAll('[data-dispute]').forEach((button) => {
+    button.addEventListener('click', () => openDispute(button.dataset.dispute));
+  });
+}
+
+//  Any complaint this student has already made. One query for
+//  the whole list rather than one per row.
+async function loadDisputes(enrolmentIds) {
+  disputes = new Map();
+  if (enrolmentIds.length === 0) return;
+
+  const { data } = await supabase
+    .from('disputes')
+    .select('id, enrolment_id, status, reason, admin_note, refunded')
+    .in('enrolment_id', enrolmentIds);
+
+  (data || []).forEach((d) => disputes.set(d.enrolment_id, d));
 }
 
 function drawStats(rows) {
@@ -118,6 +146,20 @@ function classHtml(row, myRating) {
       ? batch.areas.name_en
       : 'Area not set';
 
+  //  A class can be in one of three states here: no complaint,
+  //  one waiting for an admin, or one already settled.
+  const dispute = disputes.get(row.id);
+
+  const disputePart = !dispute
+    ? `<button class="btn btn-ghost btn-sm" type="button" data-dispute="${row.id}">
+         Report a problem
+       </button>`
+    : dispute.status === 'open'
+      ? '<span class="badge badge-warning">Complaint being reviewed</span>'
+      : dispute.status === 'refunded'
+        ? `<span class="badge badge-success">Refunded ${taka(dispute.refunded)}</span>`
+        : '<span class="badge">Complaint turned down</span>';
+
   const reviewPart =
     myRating !== undefined
       ? `<span class="stars">${stars(myRating)}</span>
@@ -145,9 +187,77 @@ function classHtml(row, myRating) {
           ${batch.is_live ? '&#9679; Class is live — join' : 'Class room'}
         </a>
         <div class="row-end">${reviewPart}</div>
+          <div class="row-end mt-xs">${disputePart}</div>
       </div>
     </div>`;
 }
+
+// ---- The complaint box -------------------------------------
+//
+//  Opening a complaint can move money, if an admin upholds it,
+//  so the browser does not write to the disputes table itself.
+//  It calls raise_dispute, which checks the enrolment really
+//  belongs to this student before writing anything.
+function openDispute(enrolmentId) {
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.innerHTML = `
+    <div class="modal">
+      <h2>Report a problem</h2>
+      <p class="muted mb">
+        Tell us what went wrong. An admin reads every complaint and
+        can refund the month if it is fair.
+      </p>
+
+      <div class="field mb">
+        <label for="dispute-text">What happened?</label>
+        <textarea id="dispute-text" rows="5" maxlength="2000"
+                  placeholder="The tutor did not take any class this month."></textarea>
+        <p class="hint">Please write at least a sentence.</p>
+      </div>
+
+      <div class="row-end">
+        <button class="btn btn-outline" type="button" data-cancel>Cancel</button>
+        <button class="btn" type="button" data-send>Send complaint</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+
+  const close = () => back.remove();
+  back.querySelector('[data-cancel]').addEventListener('click', close);
+  back.addEventListener('click', (event) => {
+    if (event.target === back) close();
+  });
+
+  back.querySelector('[data-send]').addEventListener('click', async () => {
+    const send = back.querySelector('[data-send]');
+    const reason = back.querySelector('#dispute-text').value.trim();
+
+    if (reason.length < 10) {
+      toast('Please explain the problem in a sentence or two.', 'error');
+      return;
+    }
+
+    busy(send, true, 'Sending...');
+
+    const { error } = await supabase.rpc('raise_dispute', {
+      p_enrolment_id: Number(enrolmentId),
+      p_reason: reason,
+    });
+
+    busy(send, false);
+
+    if (error) {
+      toast(error.message, 'error');
+      return;
+    }
+
+    close();
+    toast('Complaint sent. An admin will look at it.', 'success');
+    await loadClasses();
+  });
+}
+
 
 // ---- The review box ----------------------------------------
 function openReview(dataString) {

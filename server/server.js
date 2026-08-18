@@ -28,6 +28,7 @@ const express = require('express');
 const cors = require('cors');
 const SSLCommerzPayment = require('sslcommerz-lts');
 const { createClient } = require('@supabase/supabase-js');
+const { startEmailWorker } = require('./email');
 
 const STORE_ID = process.env.STORE_ID;
 const STORE_PASSWORD = process.env.STORE_PASSWORD;
@@ -302,12 +303,29 @@ app.post('/api/payment/ipn', async (req, res) => {
 });
 
 
+// ============================================================
+//  5. EMAIL
+//
+//  Turns notifications the app already writes into emails.
+//  Needs the service role key as well as the mail settings,
+//  because ticking a notification as sent must not be
+//  something the browser can do.
+// ============================================================
+const emailDb = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? db || createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
+
+const email = startEmailWorker(emailDb);
+
+
 // ---- a quick way to see the server is alive ----------------
 app.get('/api/health', (req, res) => {
   res.json({
     website: 'running',
     payments: paymentsReady ? 'ready' : 'off',
     missing_settings: missing,
+    email: email.on ? 'sending' : 'off',
+    email_missing: email.missing,
     mode: IS_LIVE ? 'LIVE' : 'sandbox',
     site: SITE_URL,
   });
@@ -335,6 +353,14 @@ app.listen(PORT, () => {
     console.log('  Payments: OFF (demo mode still works)');
     console.log('  To switch them on, fill in server/.env:');
     console.log('    ' + missing.join(', '));
+  }
+
+  if (email.on) {
+    console.log('  Email:    sending notifications');
+  } else {
+    console.log('  Email:    OFF (the bell in the app still works)');
+    console.log('  To switch it on, fill in server/.env:');
+    console.log('    ' + email.missing.join(', '));
   }
   console.log('');
 });

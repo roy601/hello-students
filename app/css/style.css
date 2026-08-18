@@ -1081,3 +1081,51 @@ input, select, textarea { transition: border-color .15s ease, box-shadow .15s ea
   white-space: nowrap;
   border: 0;
 }
+
+
+/* ---- complaints (admin) -----------------------------------
+   One card per complaint, with the student's own words quoted,
+   so an admin decides on what was actually said. */
+.dispute {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--gap);
+  margin-bottom: var(--gap-sm);
+  background: var(--surface);
+}
+
+.dispute.settled { background: var(--surface-2); }
+
+.dispute-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.dispute-who { flex: 1; min-width: 0; }
+
+.dispute-about {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+
+.dispute-reason {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--indigo);
+  background: var(--surface-2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dispute.settled .dispute-reason { background: var(--surface); }
+
+/* the admin page needs the small avatar that classroom.css
+   defines, but does not load that file */
+.avatar-sm { width: 26px; height: 26px; font-size: 10px; }

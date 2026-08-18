@@ -1553,3 +1553,450 @@ begin
   exception when duplicate_object then null;
   end;
 end $$;
+
+
+-- ============================================================
+--  PART 12 â€” RECORDINGS, DISPUTES AND EMAIL
+--
+--  Three things this part adds:
+--
+--    recordings   the tutor uploads a video of a class, and
+--                 students of that batch can watch it again.
+--                 The file itself lives in Supabase Storage;
+--                 this table only remembers where it is.
+--
+--    disputes     a student says something went wrong, and an
+--                 admin either refunds them or turns it down.
+--
+--    email_sent   one new column on notifications. The server
+--                 looks for notifications that have not been
+--                 emailed yet, sends them, and ticks this.
+--
+--  Run this part after PART 11.
+-- ============================================================
+
+
+-- ============================================================
+--  1. RECORDINGS
+-- ============================================================
+create table if not exists recordings (
+  id           bigserial primary key,
+  batch_id     bigint not null references batches (id)   on delete cascade,
+  tutor_id     uuid   not null references profiles (id)  on delete cascade,
+
+  title        text   not null,
+
+  --  where the file sits inside the "recordings" bucket.
+  --  Always "<batch id>/<something>", because the storage
+  --  rules below read the batch id out of the first folder.
+  storage_path text   not null unique,
+
+  size_bytes   bigint,
+  created_at   timestamptz not null default now(),
+
+  constraint recording_needs_a_title
+    check (length(trim(title)) between 1 and 200)
+);
+
+create index if not exists recordings_batch_idx
+  on recordings (batch_id, created_at desc);
+
+
+alter table recordings enable row level security;
+
+--  Everyone in the batch can see what was recorded.
+drop policy if exists "members read recordings" on recordings;
+create policy "members read recordings"
+  on recordings for select
+  using (can_access_batch(batch_id));
+
+--  Only the tutor of the batch can add one.
+drop policy if exists "tutor adds recording" on recordings;
+create policy "tutor adds recording"
+  on recordings for insert
+  with check (auth.uid() = tutor_id and is_batch_tutor(batch_id));
+
+--  Only the tutor of the batch can remove one.
+drop policy if exists "tutor deletes recording" on recordings;
+create policy "tutor deletes recording"
+  on recordings for delete
+  using (is_batch_tutor(batch_id));
+
+
+-- ---- the bucket the video files go in ----------------------
+--  Not public: every view goes through a signed link that
+--  lasts one hour, so a copied address stops working.
+insert into storage.buckets (id, name, public)
+values ('recordings', 'recordings', false)
+on conflict (id) do nothing;
+
+
+-- ---- which batch does this file belong to? -----------------
+--  The path is "<batch id>/<file>", so the batch is the first
+--  folder. The case statement is here on purpose: if anything
+--  ever lands in the bucket with a non-numeric folder, this
+--  returns null instead of throwing, and null simply fails
+--  every check below.
+create or replace function batch_id_from_path(p_name text)
+returns bigint
+language sql
+immutable
+as $fn$
+  select case
+           when (storage.foldername(p_name))[1] ~ '^[0-9]+$'
+             then ((storage.foldername(p_name))[1])::bigint
+           else null
+         end;
+$fn$;
+
+
+-- ---- storage rules -----------------------------------------
+--  Same two rules as the table: the batch's tutor may write,
+--  anyone in the batch may read.
+drop policy if exists "tutor uploads recording" on storage.objects;
+create policy "tutor uploads recording"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'recordings'
+    and is_batch_tutor(batch_id_from_path(name))
+  );
+
+drop policy if exists "members read recording file" on storage.objects;
+create policy "members read recording file"
+  on storage.objects for select
+  using (
+    bucket_id = 'recordings'
+    and can_access_batch(batch_id_from_path(name))
+  );
+
+drop policy if exists "tutor deletes recording file" on storage.objects;
+create policy "tutor deletes recording file"
+  on storage.objects for delete
+  using (
+    bucket_id = 'recordings'
+    and is_batch_tutor(batch_id_from_path(name))
+  );
+
+
+-- ---- tell the class a recording is up ----------------------
+create or replace function notify_batch_of_recording()
+returns trigger
+language plpgsql
+security definer
+as $fn$
+declare
+  v_batch batches%rowtype;
+begin
+  select * into v_batch from batches where id = new.batch_id;
+
+  insert into notifications (user_id, title, body, link)
+  select e.student_id,
+         'New recording',
+         new.title || ' is ready to watch in ' || v_batch.title || '.',
+         'batch-room.html?id=' || new.batch_id || '&tab=recordings'
+    from enrolments e
+   where e.batch_id = new.batch_id;
+
+  return new;
+end;
+$fn$;
+
+drop trigger if exists recordings_notify_batch on recordings;
+create trigger recordings_notify_batch
+  after insert on recordings
+  for each row execute function notify_batch_of_recording();
+
+
+-- ============================================================
+--  2. DISPUTES
+--
+--  A student opens one against a batch they paid for. An admin
+--  reads it and either refunds the money or turns it down.
+-- ============================================================
+create table if not exists disputes (
+  id           bigserial primary key,
+  enrolment_id bigint not null references enrolments (id) on delete cascade,
+  batch_id     bigint not null references batches (id)    on delete cascade,
+  student_id   uuid   not null references profiles (id)   on delete cascade,
+
+  reason       text   not null,
+  status       text   not null default 'open',
+  admin_note   text,
+
+  --  what the student actually got back, filled in on refund
+  refunded     integer,
+
+  created_at   timestamptz not null default now(),
+  resolved_at  timestamptz,
+
+  constraint dispute_status_is_known
+    check (status in ('open', 'refunded', 'rejected')),
+
+  constraint dispute_needs_a_reason
+    check (length(trim(reason)) between 10 and 2000)
+);
+
+create index if not exists disputes_status_idx on disputes (status, created_at desc);
+create index if not exists disputes_student_idx on disputes (student_id);
+
+--  Only one open complaint per enrolment, so a student cannot
+--  flood the admin queue with the same problem.
+create unique index if not exists one_open_dispute_per_enrolment
+  on disputes (enrolment_id)
+  where status = 'open';
+
+
+alter table disputes enable row level security;
+
+--  A student sees their own. An admin sees all of them.
+drop policy if exists "student or admin reads dispute" on disputes;
+create policy "student or admin reads dispute"
+  on disputes for select
+  using (auth.uid() = student_id or is_admin());
+
+--  No insert or update policy on purpose. Opening and settling
+--  a dispute both move money, so both go through the functions
+--  below, the same way payments and marking do.
+
+
+-- ---- a student opens a complaint ---------------------------
+create or replace function raise_dispute(
+  p_enrolment_id bigint,
+  p_reason       text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_student   uuid := auth.uid();
+  v_enrolment enrolments%rowtype;
+  v_batch     batches%rowtype;
+begin
+  if v_student is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  select * into v_enrolment from enrolments where id = p_enrolment_id;
+
+  if not found then
+    raise exception 'That class was not found';
+  end if;
+  if v_enrolment.student_id <> v_student then
+    raise exception 'That is not your class';
+  end if;
+  if length(trim(coalesce(p_reason, ''))) < 10 then
+    raise exception 'Please explain the problem in a sentence or two';
+  end if;
+  if exists (select 1 from disputes
+              where enrolment_id = p_enrolment_id and status = 'open') then
+    raise exception 'You already have an open complaint for this class';
+  end if;
+
+  select * into v_batch from batches where id = v_enrolment.batch_id;
+
+  insert into disputes (enrolment_id, batch_id, student_id, reason)
+  values (p_enrolment_id, v_enrolment.batch_id, v_student, trim(p_reason));
+
+  --  tell every admin there is something to look at
+  insert into notifications (user_id, title, body, link)
+  select p.id,
+         'New complaint',
+         'A student reported a problem with ' || v_batch.title || '.',
+         'admin-disputes.html'
+    from profiles p
+   where p.role = 'admin';
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ---- an admin settles it -----------------------------------
+--
+--  Refunding reverses the enrolment:
+--    the student gets their money back
+--    the tutor loses the 85% they were paid
+--    the seat goes back on sale
+--
+--  One wrinkle. A wallet may never go below zero, and the
+--  tutor may already have spent the money. So we take back
+--  only what is actually there and record the rest as a
+--  shortfall the site absorbs. Refusing the student their
+--  refund because the tutor's wallet is empty would be the
+--  wrong way round.
+create or replace function resolve_dispute(
+  p_dispute_id bigint,
+  p_action     text,
+  p_note       text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_dispute   disputes%rowtype;
+  v_enrolment enrolments%rowtype;
+  v_batch     batches%rowtype;
+  v_tutor_had integer;
+  v_claw      integer;
+  v_owed      integer;
+begin
+  if not is_admin() then
+    raise exception 'Only an admin can settle a complaint';
+  end if;
+  if p_action not in ('refund', 'reject') then
+    raise exception 'Action must be refund or reject';
+  end if;
+
+  select * into v_dispute from disputes where id = p_dispute_id for update;
+
+  if not found then
+    raise exception 'That complaint was not found';
+  end if;
+  if v_dispute.status <> 'open' then
+    raise exception 'That complaint is already %', v_dispute.status;
+  end if;
+
+  -- ---- turned down -----------------------------------------
+  if p_action = 'reject' then
+    update disputes
+       set status = 'rejected',
+           admin_note = nullif(trim(coalesce(p_note, '')), ''),
+           resolved_at = now()
+     where id = p_dispute_id;
+
+    insert into notifications (user_id, title, body, link)
+    values (v_dispute.student_id,
+            'Your complaint was reviewed',
+            coalesce(nullif(trim(coalesce(p_note, '')), ''),
+                     'After looking into it we could not refund this one.'),
+            'student-dashboard.html');
+
+    return 'rejected';
+  end if;
+
+  -- ---- refunded --------------------------------------------
+  select * into v_enrolment from enrolments
+   where id = v_dispute.enrolment_id for update;
+
+  select * into v_batch from batches
+   where id = v_dispute.batch_id for update;
+
+  v_owed := v_enrolment.fee_paid;
+
+  --  give the student their money back
+  update wallets
+     set balance = balance + v_owed, updated_at = now()
+   where user_id = v_dispute.student_id;
+
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_dispute.student_id, 'refund', v_owed,
+          'Refund for ' || v_batch.title, v_dispute.batch_id);
+
+  --  take back what the tutor was paid, as far as possible
+  select balance into v_tutor_had from wallets
+   where user_id = v_batch.tutor_id for update;
+
+  v_claw := least(round(v_owed * 0.85), coalesce(v_tutor_had, 0));
+
+  if v_claw > 0 then
+    update wallets
+       set balance = balance - v_claw, updated_at = now()
+     where user_id = v_batch.tutor_id;
+
+    insert into transactions (user_id, kind, amount, note, batch_id)
+    values (v_batch.tutor_id, 'refund', -v_claw,
+            'Refund taken back for ' || v_batch.title, v_dispute.batch_id);
+  end if;
+
+  --  end the enrolment and put the seat back on sale
+  update enrolments set status = 'left' where id = v_enrolment.id;
+
+  update batches
+     set seats_taken = greatest(seats_taken - 1, 0)
+   where id = v_dispute.batch_id;
+
+  update disputes
+     set status = 'refunded',
+         admin_note = nullif(trim(coalesce(p_note, '')), ''),
+         refunded = v_owed,
+         resolved_at = now()
+   where id = p_dispute_id;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_dispute.student_id,
+          'You have been refunded',
+          v_owed || ' taka is back in your wallet for ' || v_batch.title || '.',
+          'student-wallet.html');
+
+  insert into notifications (user_id, title, body, link)
+  values (v_batch.tutor_id,
+          'A student was refunded',
+          'A complaint about ' || v_batch.title || ' was upheld and ' ||
+            v_claw || ' taka was taken back.',
+          'tutor-dashboard.html');
+
+  return 'refunded';
+end;
+$fn$;
+
+
+-- ============================================================
+--  3. EMAIL
+--
+--  Every notification already written by the app becomes an
+--  email as well. Nothing else has to change: the server reads
+--  rows where email_sent is false, sends them, and ticks the
+--  column. If the mail settings are missing the server simply
+--  does not run that job, and the app carries on as before.
+--
+--  Only the server can tick this column, because it holds the
+--  service role key. A student cannot mark their own mail as
+--  sent, which is what stops the queue being tampered with.
+-- ============================================================
+alter table notifications
+  add column if not exists email_sent boolean not null default false;
+
+--  The server asks for "not yet emailed, oldest first", so
+--  give that question its own index.
+create index if not exists notifications_unsent_idx
+  on notifications (created_at)
+  where email_sent = false;
+
+
+-- ============================================================
+--  4. A REFUNDED STUDENT LOSES ACCESS
+--
+--  This replaces the version of can_access_batch written in
+--  PART 7. It is repeated here rather than edited up there,
+--  because your database has already run PART 7 and only a
+--  fresh "create or replace" will change what is installed.
+--
+--  What changed and why:
+--  refunding a student sets their enrolment to 'left', but the
+--  old version only asked "is there an enrolment row?", so a
+--  student who had just been given their money back could
+--  still open the class room, read the wall, download the
+--  recordings and post in the chat. Asking for an ACTIVE
+--  enrolment closes that.
+--
+--  Everything else in the app calls this one function, so
+--  fixing it here fixes the stream, the classwork, the
+--  recordings, the people list and the chat all at once.
+-- ============================================================
+create or replace function can_access_batch(p_batch_id bigint)
+returns boolean
+language sql
+security definer
+stable
+as $fn$
+  select
+    exists (select 1 from enrolments
+             where batch_id = p_batch_id
+               and student_id = auth.uid()
+               and status = 'active')
+    or exists (select 1 from batches
+                where id = p_batch_id and tutor_id = auth.uid())
+    or is_admin();
+$fn$;
