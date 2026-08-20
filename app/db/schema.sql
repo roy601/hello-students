@@ -2000,3 +2000,450 @@ as $fn$
                 where id = p_batch_id and tutor_id = auth.uid())
     or is_admin();
 $fn$;
+
+
+-- ============================================================
+--  PART 13 â€” PAYOUTS, AND A SAFER ENROLMENT
+--
+--  Two things here, both needed before real money moves.
+--
+--  1. PAYOUTS
+--     Until now a tutor earned 85% of every fee into their
+--     wallet and there was no way whatsoever to get it out.
+--     The dashboard even said "money you can withdraw", which
+--     was not true. This adds the missing half.
+--
+--  2. A SAFER enrol_in_batch
+--     The version in PART 4 let a student join two batches
+--     that meet at the same hour on the same day, and would
+--     never let a refunded student come back. Both fixed here.
+--
+--  Run this part after PART 12.
+-- ============================================================
+
+
+-- ============================================================
+--  1. A NEW KIND OF TRANSACTION
+--
+--  transactions.kind is a closed list, so 'payout' has to be
+--  allowed before any payout row can be written.
+-- ============================================================
+alter table transactions drop constraint if exists kind_must_be_valid;
+
+alter table transactions add constraint kind_must_be_valid
+  check (kind in ('top_up', 'enrol_payment', 'tutor_earning', 'refund', 'payout'));
+
+
+-- ============================================================
+--  2. PAYOUT REQUESTS
+--
+--  The money leaves the wallet the moment it is requested, not
+--  when the admin pays it. That is deliberate: if it sat in
+--  the wallet while "pending", the tutor could request 5,000
+--  twice over and the site would owe 10,000 it never held.
+--  Asking to withdraw is therefore a debit, and turning the
+--  request down puts it straight back.
+-- ============================================================
+create table if not exists payout_requests (
+  id         bigserial primary key,
+  tutor_id   uuid    not null references profiles (id) on delete cascade,
+
+  amount     integer not null,
+  method     text    not null,
+  account    text    not null,
+
+  status     text    not null default 'pending',
+  admin_note text,
+  reference  text,
+
+  created_at timestamptz not null default now(),
+  settled_at timestamptz,
+
+  constraint payout_status_is_known
+    check (status in ('pending', 'paid', 'rejected')),
+
+  constraint payout_method_is_known
+    check (method in ('bkash', 'nagad', 'bank')),
+
+  --  a floor stops the admin queue filling with 10 taka asks
+  constraint payout_amount_is_sensible
+    check (amount >= 500),
+
+  constraint payout_account_looks_real
+    check (length(trim(account)) between 6 and 40)
+);
+
+create index if not exists payout_tutor_idx  on payout_requests (tutor_id, created_at desc);
+create index if not exists payout_status_idx on payout_requests (status, created_at);
+
+--  Only one request in flight at a time, per tutor.
+create unique index if not exists one_pending_payout_per_tutor
+  on payout_requests (tutor_id)
+  where status = 'pending';
+
+
+alter table payout_requests enable row level security;
+
+--  A tutor sees their own. An admin sees all.
+drop policy if exists "tutor or admin reads payout" on payout_requests;
+create policy "tutor or admin reads payout"
+  on payout_requests for select
+  using (auth.uid() = tutor_id or is_admin());
+
+--  No insert or update policy, on purpose. Both sides move
+--  money, so both go through the functions below.
+
+
+-- ---- the tutor asks -----------------------------------------
+create or replace function request_payout(
+  p_amount  integer,
+  p_method  text,
+  p_account text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_tutor   uuid := auth.uid();
+  v_balance integer;
+begin
+  if v_tutor is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  if not exists (select 1 from profiles where id = v_tutor and role = 'tutor') then
+    raise exception 'Only a tutor can withdraw earnings';
+  end if;
+
+  if p_method not in ('bkash', 'nagad', 'bank') then
+    raise exception 'Choose bKash, Nagad or bank';
+  end if;
+  if p_amount is null or p_amount < 500 then
+    raise exception 'The smallest withdrawal is 500 taka';
+  end if;
+  if length(trim(coalesce(p_account, ''))) < 6 then
+    raise exception 'Enter the number the money should go to';
+  end if;
+
+  if exists (select 1 from payout_requests
+              where tutor_id = v_tutor and status = 'pending') then
+    raise exception 'You already have a withdrawal waiting. Please wait for it to be paid.';
+  end if;
+
+  select balance into v_balance from wallets where user_id = v_tutor for update;
+
+  if v_balance is null then
+    raise exception 'Wallet not found';
+  end if;
+  if v_balance < p_amount then
+    raise exception 'You only have % taka.', v_balance;
+  end if;
+
+  --  hold the money now
+  update wallets
+     set balance = balance - p_amount, updated_at = now()
+   where user_id = v_tutor;
+
+  insert into transactions (user_id, kind, amount, note)
+  values (v_tutor, 'payout', -p_amount, 'Withdrawal requested');
+
+  insert into payout_requests (tutor_id, amount, method, account)
+  values (v_tutor, p_amount, p_method, trim(p_account));
+
+  insert into notifications (user_id, title, body, link)
+  select p.id,
+         'Withdrawal requested',
+         (select full_name from profiles where id = v_tutor) ||
+           ' asked to withdraw ' || p_amount || ' taka.',
+         'admin-payouts.html'
+    from profiles p
+   where p.role = 'admin';
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ---- the admin settles it -----------------------------------
+--
+--  'paid'    the admin has sent the money by bKash or Nagad by
+--            hand and is writing down that it happened. The
+--            wallet was already debited when it was requested,
+--            so nothing moves here.
+--  'reject'  the money goes back to the tutor's wallet.
+create or replace function settle_payout(
+  p_payout_id bigint,
+  p_action    text,
+  p_note      text,
+  p_reference text
+)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_payout payout_requests%rowtype;
+begin
+  if not is_admin() then
+    raise exception 'Only an admin can settle a withdrawal';
+  end if;
+  if p_action not in ('paid', 'reject') then
+    raise exception 'Action must be paid or reject';
+  end if;
+
+  select * into v_payout from payout_requests
+   where id = p_payout_id for update;
+
+  if not found then
+    raise exception 'That withdrawal was not found';
+  end if;
+  if v_payout.status <> 'pending' then
+    raise exception 'That withdrawal is already %', v_payout.status;
+  end if;
+
+  if p_action = 'paid' then
+    update payout_requests
+       set status = 'paid',
+           admin_note = nullif(trim(coalesce(p_note, '')), ''),
+           reference  = nullif(trim(coalesce(p_reference, '')), ''),
+           settled_at = now()
+     where id = p_payout_id;
+
+    insert into notifications (user_id, title, body, link)
+    values (v_payout.tutor_id,
+            'You have been paid',
+            v_payout.amount || ' taka was sent to your ' ||
+              v_payout.method || ' account.',
+            'tutor-dashboard.html');
+
+    return 'paid';
+  end if;
+
+  --  turned down: give the held money back
+  update wallets
+     set balance = balance + v_payout.amount, updated_at = now()
+   where user_id = v_payout.tutor_id;
+
+  insert into transactions (user_id, kind, amount, note)
+  values (v_payout.tutor_id, 'payout', v_payout.amount,
+          'Withdrawal turned down, money returned');
+
+  update payout_requests
+     set status = 'rejected',
+         admin_note = nullif(trim(coalesce(p_note, '')), ''),
+         settled_at = now()
+   where id = p_payout_id;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_payout.tutor_id,
+          'Withdrawal turned down',
+          coalesce(nullif(trim(coalesce(p_note, '')), ''),
+                   'Your withdrawal could not be sent.') ||
+            ' The ' || v_payout.amount || ' taka is back in your wallet.',
+          'tutor-dashboard.html');
+
+  return 'rejected';
+end;
+$fn$;
+
+
+-- ============================================================
+--  3. DO TWO BATCHES CLASH?
+--
+--  days is stored as text like 'Sun, Tue, Thu'. Two batches
+--  clash when they share at least one day AND their times
+--  overlap.
+--
+--  The overlap test is the standard one: A starts before B
+--  ends, and B starts before A ends. Touching at the edges is
+--  fine, so 8-9 and 9-10 do not clash.
+-- ============================================================
+create or replace function batches_clash(a bigint, b bigint)
+returns boolean
+language sql
+stable
+as $fn$
+  select exists (
+    select 1
+      from batches x, batches y
+     where x.id = a and y.id = b
+       and x.start_time < y.end_time
+       and y.start_time < x.end_time
+       and exists (
+         select 1
+           from unnest(string_to_array(replace(x.days, ' ', ''), ',')) d
+          where d = any (string_to_array(replace(y.days, ' ', ''), ','))
+       )
+  );
+$fn$;
+
+
+-- ============================================================
+--  4. A SAFER ENROLMENT
+--
+--  This replaces the version from PART 4. Three changes, each
+--  marked NEW below:
+--
+--    * it refuses a batch that clashes with one you are
+--      already in, instead of quietly double booking you
+--    * a student who was refunded can join again, because the
+--      old row is reused rather than blocking on the unique
+--      index
+--    * "already joined" now only counts ACTIVE enrolments
+-- ============================================================
+create or replace function enrol_in_batch(p_batch_id bigint)
+returns text
+language plpgsql
+security definer
+as $fn$
+declare
+  v_student      uuid := auth.uid();
+  v_batch        batches%rowtype;
+  v_balance      integer;
+  v_student_name text;
+  v_clash        text;
+  v_old          enrolments%rowtype;
+begin
+  if v_student is null then
+    raise exception 'You must be logged in';
+  end if;
+
+  -- lock this batch row so two students cannot take the last seat
+  select * into v_batch from batches where id = p_batch_id for update;
+
+  if not found then
+    raise exception 'Batch not found';
+  end if;
+  if not v_batch.is_published then
+    raise exception 'This batch is not open yet';
+  end if;
+  if v_batch.seats_taken >= v_batch.seat_limit then
+    raise exception 'This batch is full';
+  end if;
+
+  --  NEW: only an ACTIVE enrolment counts as already joined
+  if exists (select 1 from enrolments
+              where batch_id = p_batch_id
+                and student_id = v_student
+                and status = 'active') then
+    raise exception 'You have already joined this batch';
+  end if;
+
+  --  NEW: does this clash with something already in the diary?
+  select b.title into v_clash
+    from enrolments e
+    join batches b on b.id = e.batch_id
+   where e.student_id = v_student
+     and e.status = 'active'
+     and batches_clash(b.id, p_batch_id)
+   limit 1;
+
+  if v_clash is not null then
+    raise exception 'This clashes with %, which runs at the same time.', v_clash;
+  end if;
+
+  select balance into v_balance from wallets where user_id = v_student for update;
+
+  if v_balance is null then
+    raise exception 'Wallet not found';
+  end if;
+  if v_balance < v_batch.monthly_fee then
+    raise exception 'Not enough balance. You need % taka.', v_batch.monthly_fee;
+  end if;
+
+  -- take the money from the student
+  update wallets
+     set balance = balance - v_batch.monthly_fee, updated_at = now()
+   where user_id = v_student;
+
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_student, 'enrol_payment', -v_batch.monthly_fee,
+          'Joined ' || v_batch.title, p_batch_id);
+
+  --  NEW: reuse the old row if this student was here before,
+  --  because (batch_id, student_id) is unique and a plain
+  --  insert would fail for anyone who had been refunded
+  select * into v_old from enrolments
+   where batch_id = p_batch_id and student_id = v_student;
+
+  if found then
+    update enrolments
+       set status = 'active',
+           fee_paid = v_batch.monthly_fee,
+           created_at = now()
+     where id = v_old.id;
+  else
+    insert into enrolments (batch_id, student_id, fee_paid)
+    values (p_batch_id, v_student, v_batch.monthly_fee);
+  end if;
+
+  update batches set seats_taken = seats_taken + 1 where id = p_batch_id;
+  update tutor_profiles set students_taught = students_taught + 1
+   where id = v_batch.tutor_id;
+
+  -- pay the tutor (the site keeps 15%)
+  insert into transactions (user_id, kind, amount, note, batch_id)
+  values (v_batch.tutor_id, 'tutor_earning',
+          round(v_batch.monthly_fee * 0.85),
+          'A student joined ' || v_batch.title, p_batch_id);
+
+  update wallets
+     set balance = balance + round(v_batch.monthly_fee * 0.85), updated_at = now()
+   where user_id = v_batch.tutor_id;
+
+  -- tell both people
+  select full_name into v_student_name from profiles where id = v_student;
+
+  insert into notifications (user_id, title, body, link)
+  values (v_student, 'You joined a batch',
+          'You joined ' || v_batch.title || '. See it in My Classes.',
+          'student-dashboard.html');
+
+  insert into notifications (user_id, title, body, link)
+  values (v_batch.tutor_id, 'New student',
+          v_student_name || ' joined ' || v_batch.title || '.',
+          'tutor-students.html');
+
+  return 'ok';
+end;
+$fn$;
+
+
+-- ============================================================
+--  PART 14 â€” TAKE AWAY THE FAKE PAYMENT
+--
+--  PART 10 added demo_confirm_payment so the project could be
+--  shown working before there was a merchant account. It let
+--  the BROWSER mark an order as paid.
+--
+--  That is a hole, not a feature. Anyone who could open the
+--  developer console could call it and join any batch for
+--  nothing, and it is why a checkout could say "Payment
+--  complete" with no money moving.
+--
+--  It goes now. From here the only thing that can mark an
+--  order paid is the server, holding the service role key,
+--  after asking the gateway directly.
+--
+--  Run this part after PART 13.
+-- ============================================================
+
+drop function if exists demo_confirm_payment(text);
+
+
+-- ---- prove it is gone --------------------------------------
+--  Raises if anything named demo_confirm_payment is still
+--  there, so running this twice is safe and running it once
+--  actually tells you it worked.
+do $$
+begin
+  if exists (
+    select 1 from pg_proc
+     where proname = 'demo_confirm_payment'
+  ) then
+    raise exception 'demo_confirm_payment is still installed';
+  end if;
+
+  raise notice 'demo_confirm_payment is gone. Payments can now only be confirmed by the server.';
+end $$;

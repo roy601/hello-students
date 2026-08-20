@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Complaints — HelloStudents</title>
+  <title>Withdrawals — HelloStudents</title>
   <script>
     /*  Runs before anything is drawn, so a dark-mode visitor
         never sees a white flash first. It has to be inline and
@@ -27,26 +27,32 @@
 
   <main class="page">
 
-    <section class="grid-4 mb-md stagger" id="dispute-stats"></section>
+    <section class="grid-4 mb-md stagger" id="payout-stats"></section>
 
     <div class="card mb-md">
       <div class="card-head">
-        <h2>Waiting for a decision</h2>
-        <span class="badge badge-warning" id="open-count">—</span>
+        <h2>Waiting to be sent</h2>
+        <span class="badge badge-warning" id="pending-count">—</span>
       </div>
-      <div id="open-list"></div>
+      <p class="hint mb">
+        Send the money by bKash or Nagad yourself, then mark it paid
+        here. The amount already left the tutor's wallet when they
+        asked, so marking it paid moves nothing — it only records
+        that you sent it.
+      </p>
+      <div id="pending-list"></div>
     </div>
 
     <div class="card">
       <div class="card-head">
         <h2>Already settled</h2>
       </div>
-      <div id="closed-list"></div>
+      <div id="settled-list"></div>
     </div>
 
   </main>
 
-  <script type="module" src="js/admin-disputes.js?v=6"></script>
+  <script type="module" src="js/admin-payouts.js?v=6"></script>
 
 </body>
 </html>

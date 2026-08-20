@@ -22,6 +22,10 @@ let ctx = null;         // { batchId, me, isTutor, tutorId }
 let box = null;         // the tab we draw into
 let posts = [];         // the wall, newest first
 let comments = new Map(); // post id -> array of comments
+//  Threads the reader has opened. Module level on purpose: the
+//  wall is redrawn whenever anything changes, and a thread that
+//  snapped shut on every redraw would be maddening.
+let openThreads = new Set();
 let channel = null;
 
 // ------------------------------------------------------------
@@ -33,8 +37,11 @@ export async function mountStream(element, context) {
 
   box.innerHTML = `
     <div class="stream">
-      <div id="composer"></div>
-      <div id="wall"></div>
+      <aside class="stream-rail" id="rail"></aside>
+      <div class="stream-main">
+        <div id="composer"></div>
+        <div id="wall"></div>
+      </div>
     </div>`;
 
   drawComposer();
@@ -147,6 +154,8 @@ async function loadWall() {
 
   posts = data || [];
 
+  drawRail();
+
   if (posts.length === 0) {
     wall.innerHTML = `
       <div class="empty">
@@ -186,6 +195,87 @@ async function loadComments() {
     if (!comments.has(row.post_id)) comments.set(row.post_id, []);
     comments.get(row.post_id).push(row);
   });
+}
+
+
+// ============================================================
+//  THE SIDE RAIL
+//
+//  What is due, and nothing else. It reads off the posts the
+//  wall already loaded rather than asking the database again,
+//  so opening the tab is still one round trip.
+// ============================================================
+function drawRail() {
+  const rail = document.getElementById('rail');
+  if (!rail) return;
+
+  const now = Date.now();
+
+  const due = posts
+    .filter((p) => p.kind === 'assignment' && p.due_at)
+    .filter((p) => new Date(p.due_at).getTime() >= now)
+    .sort((a, b) => new Date(a.due_at) - new Date(b.due_at))
+    .slice(0, 3);
+
+  //  Work whose date has passed is worth a word too, but only
+  //  to the student who still has to hand it in.
+  const late = posts
+    .filter((p) => p.kind === 'assignment' && p.due_at)
+    .filter((p) => new Date(p.due_at).getTime() < now).length;
+
+  const dueRows = due
+    .map(
+      (p) => `
+      <li class="due-row">
+        <span class="due-title">${safe(p.title || 'Assignment')}</span>
+        <span class="due-when">Due ${formatDate(p.due_at)}</span>
+      </li>`
+    )
+    .join('');
+
+  rail.innerHTML = `
+    <div class="card rail-card">
+      <div class="rail-head">
+        <h3>Due soon</h3>
+        ${late > 0 && !ctx.isTutor
+          ? `<span class="badge badge-warning">${late} past due</span>`
+          : ''}
+      </div>
+
+      ${due.length > 0
+        ? `<ul class="due-list">${dueRows}</ul>`
+        : `<p class="muted small">
+             ${ctx.isTutor
+               ? 'Nothing set with a due date yet.'
+               : 'No work due. Enjoy it while it lasts.'}
+           </p>`}
+
+      <button type="button" class="btn btn-ghost btn-sm rail-all" id="rail-classwork">
+        View all work
+      </button>
+    </div>
+
+    ${ctx.isTutor ? tutorRailHtml() : ''}`;
+
+  document.getElementById('rail-classwork').addEventListener('click', () => {
+    const tab = document.getElementById('tab-btn-classwork');
+    if (tab) tab.click();
+  });
+}
+
+//  The tutor gets the link that brings students in. This is the
+//  batch page, NOT the video room code: that code is what joins
+//  the live call, so putting it on screen would let anyone who
+//  saw it walk into the class.
+function tutorRailHtml() {
+  const link = window.location.origin + '/batch.html?id=' + ctx.batchId;
+
+  return `
+    <div class="card rail-card mt">
+      <div class="rail-head"><h3>Invite students</h3></div>
+      <p class="muted small">Send this link. They pay and join from there.</p>
+      <div class="rail-link">${safe(link)}</div>
+    </div>`;
 }
 
 
@@ -249,7 +339,14 @@ function postHtml(post) {
 function commentsHtml(postId) {
   const list = comments.get(postId) || [];
 
-  const rows = list
+  //  A long thread would push every other post off the screen,
+  //  so only the last two show until the reader asks for the
+  //  rest. Opening one is remembered across redraws.
+  const isOpen = openThreads.has(postId);
+  const hidden = isOpen ? 0 : Math.max(0, list.length - 2);
+  const shown = hidden > 0 ? list.slice(-2) : list;
+
+  const rows = shown
     .map(
       (c) => `
       <div class="cmt" data-cmt="${c.id}">
@@ -269,11 +366,19 @@ function commentsHtml(postId) {
 
   const count = list.length;
 
+  const head =
+    hidden > 0
+      ? `<button type="button" class="cmt-more" data-open-thread="${postId}">
+           ${icon('chat', 'ico-sm')}
+           <span>View all ${count} class comments</span>
+         </button>`
+      : count > 0
+        ? `<p class="cmt-count">${count} class ${count === 1 ? 'comment' : 'comments'}</p>`
+        : '';
+
   return `
     <div class="post-foot">
-      ${count > 0
-        ? `<p class="cmt-count">${count} class ${count === 1 ? 'comment' : 'comments'}</p>`
-        : ''}
+      ${head}
       <div class="cmt-list">${rows}</div>
 
       <form class="cmt-form" data-cmt-form="${postId}">
@@ -312,6 +417,13 @@ function wireWall() {
 
   wall.querySelectorAll('[data-del-cmt]').forEach((button) =>
     button.addEventListener('click', () => removeComment(button.dataset.delCmt))
+  );
+
+  wall.querySelectorAll('[data-open-thread]').forEach((button) =>
+    button.addEventListener('click', () => {
+      openThreads.add(Number(button.dataset.openThread));
+      loadWall();
+    })
   );
 }
 

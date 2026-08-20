@@ -11,7 +11,12 @@
 //    6. scattered tools merging together
 //    7. progress bars filling
 //    8. pricing toggle
+//    9. light / dark switch
 // ============================================================
+
+import { supabase } from './supabase.js';
+import { icon } from './icons.js';
+import { toggleTheme } from './theme.js';
 
 const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const noMouse = window.matchMedia('(hover: none)').matches;
@@ -230,4 +235,20 @@ if (toggle) {
       per.textContent = yearly ? '/year' : '/month';
     });
   });
+}
+
+
+// ============================================================
+//  9. LIGHT / DARK SWITCH
+//
+//  The landing page writes its own top bar inside index.html
+//  instead of going through session.js, so the button has to
+//  be filled in and wired up here rather than there.
+// ============================================================
+const themeBtn = document.getElementById('theme-btn');
+
+if (themeBtn) {
+  document.getElementById('sun-ico').innerHTML = icon('sun');
+  document.getElementById('moon-ico').innerHTML = icon('moon');
+  themeBtn.addEventListener('click', toggleTheme);
 }

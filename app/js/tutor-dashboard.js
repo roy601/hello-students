@@ -8,6 +8,7 @@
 // ============================================================
 
 import { supabase } from './supabase.js';
+import { mountPayout } from './payout.js';
 import { renderTopbar, requireRole } from './session.js';
 import { showLoading, showEmpty, renderPageHero, setupReveal } from './ui.js';
 import { formatTime, taka, formatDate, stars, safe } from './format.js';
@@ -76,6 +77,9 @@ async function loadEverything() {
   showStats(tutor, wallet, batches || [], earnings || []);
   showBatches(batches || []);
   showEarnings(earnings || []);
+
+  //  the withdraw box needs the balance, so it is mounted last
+  await mountPayout(document.getElementById('payout'), me, wallet?.balance || 0);
 }
 
 function showApprovalBanner(status) {
@@ -108,7 +112,7 @@ function showStats(tutor, wallet, batches, earnings) {
     <div class="stat">
       <div class="label">Wallet</div>
       <div class="value brand">${taka(wallet?.balance || 0)}</div>
-      <div class="sub">money you can withdraw</div>
+      <div class="sub">yours to withdraw, below</div>
     </div>
     <div class="stat">
       <div class="label">Earned recently</div>

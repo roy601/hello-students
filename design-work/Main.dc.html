@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+      background: #FAFAFC;
+      color: #18181B;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -.011em;
+    }
+    a { color: #635BFF; text-decoration: none; }
+    a:hover { color: #312E81; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; min-height: 1000px; background: #FAFAFC; position: relative; overflow: hidden">
+
+  <div style="position: absolute; top: -180px; left: 50%; margin-left: -420px; width: 840px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(99,91,255,.16), rgba(99,91,255,0) 68%); pointer-events: none"></div>
+
+  <div style="position: relative; display: flex; align-items: center; gap: 14px; height: 58px; margin: 20px auto 0; max-width: 1120px; padding: 0 10px 0 18px; border-radius: 18px; border: 1px solid rgba(228,228,231,.85); background: rgba(255,255,255,.74); box-shadow: 0 4px 22px rgba(24,24,27,.07)">
+    <div style="display: flex; align-items: center; gap: 10px; font-size: 16.5px; font-weight: 700; letter-spacing: -.03em">
+      <span style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(100deg, #635BFF 0%, #8B5CF6 52%, #38BDF8 100%); box-shadow: 0 3px 10px rgba(99,91,255,.4)"></span>
+      HelloStudents
+    </div>
+    <div style="display: flex; align-items: center; gap: 3px; margin-left: auto">
+      <span style="color: #71717A; font-size: 14.5px; font-weight: 550; padding: 8px 12px">Features</span>
+      <span style="color: #71717A; font-size: 14.5px; font-weight: 550; padding: 8px 12px">For Teachers</span>
+      <span style="color: #71717A; font-size: 14.5px; font-weight: 550; padding: 8px 12px">Pricing</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; padding: 12px 19px; border-radius: 12px; background: linear-gradient(100deg, #635BFF 0%, #8B5CF6 52%, #38BDF8 100%); color: #fff; margin-left: 10px">Get Started</span>
+    </div>
+  </div>
+
+  <div style="position: relative; max-width: 1000px; margin: 0 auto; padding: 76px 28px 0; text-align: center">
+    <div style="display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; color: #71717A">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(100deg, #635BFF, #38BDF8)"></span>
+      The modern operating system for teachers
+    </div>
+
+    <h1 style="font-size: 84px; line-height: 1.02; letter-spacing: -.045em; font-weight: 700; margin: 26px 0 0; text-wrap: balance">
+      Your Classroom.<br>
+      <span style="background: linear-gradient(100deg, #635BFF 0%, #8B5CF6 52%, #38BDF8 100%); -webkit-background-clip: text; background-clip: text; color: transparent">Your Platform.</span><br>
+      Your Students.
+    </h1>
+
+    <p style="font-size: 20px; color: #71717A; max-width: 52ch; margin: 22px auto 0; line-height: 1.6">
+      Everything teachers need to teach, manage and grow — all in one place.
+    </p>
+
+    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px">
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 600; padding: 15px 26px; border-radius: 12px; background: linear-gradient(100deg, #635BFF 0%, #8B5CF6 52%, #38BDF8 100%); color: #fff; box-shadow: 0 8px 26px rgba(99,91,255,.32)">Create Your Teaching Platform</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; padding: 15px 26px; border-radius: 12px; background: transparent; color: #635BFF; border: 1px solid #E4E4E7">See how it works</span>
+    </div>
+  </div>
+
+  <div style="position: relative; max-width: 1040px; margin: 56px auto 0; padding: 0 28px">
+    <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 18px">
+      <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+        <button type="button" onClick="{{tab.pick}}" style="{{tab.style}}">{{tab.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="border-radius: 24px; border: 1px solid #E4E4E7; background: #FFFFFF; box-shadow: 0 34px 90px rgba(49,46,129,.14); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; background: #FCFCFD; border-bottom: 1px solid #F1F1F4">
+        <span style="width: 9px; height: 9px; border-radius: 50%; background: #E4E4E7"></span>
+        <span style="width: 9px; height: 9px; border-radius: 50%; background: #E4E4E7"></span>
+        <span style="width: 9px; height: 9px; border-radius: 50%; background: #E4E4E7"></span>
+        <span style="margin-left: 14px; font-size: 12px; color: #A1A1AA">hellostudents.com/{{panel.slug}}</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 330px">
+        <div style="border-right: 1px solid #F1F1F4; padding: 18px 14px; display: flex; flex-direction: column; gap: 3px; background: #FCFCFD">
+          <sc-for list="{{nav}}" as="n" hint-placeholder-count="5">
+            <span style="{{n.style}}">{{n.label}}</span>
+          </sc-for>
+        </div>
+
+        <div style="padding: 24px 26px">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+            <div>
+              <div style="font-size: 18px; font-weight: 700; letter-spacing: -.02em">{{panel.title}}</div>
+              <div style="font-size: 13.5px; color: #71717A; margin-top: 3px">{{panel.sub}}</div>
+            </div>
+            <span style="font-size: 12px; font-weight: 650; padding: 5px 11px; border-radius: 20px; background: #EFEEFF; color: #312E81">{{panel.badge}}</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px">
+            <sc-for list="{{panel.stats}}" as="s" hint-placeholder-count="3">
+              <div style="border: 1px solid #E4E4E7; border-radius: 12px; padding: 13px 14px; background: #FFFFFF">
+                <div style="font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #A1A1AA">{{s.label}}</div>
+                <div style="font-size: 24px; font-weight: 700; letter-spacing: -.03em; margin-top: 5px">{{s.value}}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 18px">
+            <sc-for list="{{panel.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #F1F1F4; border-radius: 12px; background: #FFFFFF">
+                <span style="{{r.dot}}"></span>
+                <span style="font-size: 14px; font-weight: 600; flex-grow: 1">{{r.name}}</span>
+                <span style="font-size: 13px; color: #71717A">{{r.meta}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; max-width: 1040px; margin: 44px auto 0; padding: 0 28px 60px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+    <sc-for list="{{proof}}" as="p" hint-placeholder-count="4">
+      <div style="text-align: center">
+        <div style="font-size: 30px; font-weight: 700; letter-spacing: -.035em; background: linear-gradient(100deg, #635BFF, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent">{{p.n}}</div>
+        <div style="font-size: 13px; color: #71717A; margin-top: 2px">{{p.label}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'batches' };
+  }
+
+  renderVals() {
+    const on = this.state.tab;
+
+    const tabDefs = [
+      { id: 'batches', label: 'Batches' },
+      { id: 'live', label: 'Live class' },
+      { id: 'library', label: 'Recordings' },
+    ];
+
+    const tabs = tabDefs.map((t) => ({
+      label: t.label,
+      pick: () => this.setState({ tab: t.id }),
+      style: t.id === on
+        ? 'font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 10px; border: 1px solid #E4E4E7; background: #FFFFFF; color: #635BFF; cursor: pointer; box-shadow: 0 1px 2px rgba(24,24,27,.05)'
+        : 'font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: #71717A; cursor: pointer',
+    }));
+
+    const navDefs = ['Dashboard', 'Batches', 'Live class', 'Recordings', 'Students', 'Payments'];
+    const activeNav = { batches: 'Batches', live: 'Live class', library: 'Recordings' }[on];
+
+    const nav = navDefs.map((label) => ({
+      label,
+      style: label === activeNav
+        ? 'font-size: 13.5px; font-weight: 650; padding: 8px 11px; border-radius: 9px; background: #EFEEFF; color: #312E81'
+        : 'font-size: 13.5px; font-weight: 550; padding: 8px 11px; border-radius: 9px; color: #71717A',
+    }));
+
+    const dot = (c) => 'width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: ' + c;
+
+    const panels = {
+      batches: {
+        slug: 'batches',
+        title: 'My batches',
+        sub: 'Each batch has its own days, seats and monthly fee.',
+        badge: '6 running',
+        stats: [
+          { label: 'Students', value: '248' },
+          { label: 'Seats left', value: '31' },
+          { label: 'This month', value: '৳ 84,500' },
+        ],
+        rows: [
+          { name: 'HSC Physics — Morning', meta: 'Sun · Tue · Thu · ৳ 2,500', dot: dot('#635BFF') },
+          { name: 'Class 9 Maths', meta: 'Mon · Wed · ৳ 1,800', dot: dot('#8B5CF6') },
+          { name: 'ICT Crash Batch', meta: 'Fri · ৳ 1,200', dot: dot('#38BDF8') },
+        ],
+      },
+      live: {
+        slug: 'batch-room',
+        title: 'HSC Physics — Morning',
+        sub: 'Class is running. Every viewer’s name is on the video.',
+        badge: 'LIVE',
+        stats: [
+          { label: 'Joined', value: '42' },
+          { label: 'Enrolled', value: '48' },
+          { label: 'Running', value: '26 min' },
+        ],
+        rows: [
+          { name: 'Tahmid Alam', meta: 'joined 24 min ago', dot: dot('#15803D') },
+          { name: 'Sadia Karim', meta: 'joined 22 min ago', dot: dot('#15803D') },
+          { name: 'Nusrat Akter', meta: 'joined 9 min ago', dot: dot('#15803D') },
+        ],
+      },
+      library: {
+        slug: 'batch-room?tab=recordings',
+        title: 'Recordings',
+        sub: 'Uploaded classes your batch can watch again.',
+        badge: '12 uploaded',
+        stats: [
+          { label: 'Recordings', value: '12' },
+          { label: 'Watched', value: '386' },
+          { label: 'Storage', value: '480 MB' },
+        ],
+        rows: [
+          { name: 'Thermodynamics — First Law', meta: '18:42 · 41 views', dot: dot('#18181B') },
+          { name: 'Vectors, Chapter 2', meta: '24:05 · 33 views', dot: dot('#18181B') },
+          { name: 'Board Questions 2023', meta: '31:10 · 58 views', dot: dot('#18181B') },
+        ],
+      },
+    };
+
+    return {
+      tabs,
+      nav,
+      panel: panels[on],
+      proof: [
+        { n: '15%', label: 'the only fee we take' },
+        { n: '৳ 0', label: 'to open your first batch' },
+        { n: '3', label: 'ways to run a live class' },
+        { n: '24h', label: 'tutor approval' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

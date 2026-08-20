@@ -15,8 +15,8 @@ import { renderTopbar, requireRole } from './session.js';
 import { renderPageHero, toast, busy, showLoading } from './ui.js';
 import { taka, formatTime, safe } from './format.js';
 import {
-  GATEWAY_MODE, METHODS,
-  startPayment, openGateway, demoPay, getPayment, finishEnrolment,
+  METHODS,
+  startPayment, openGateway, getPayment, finishEnrolment,
 } from './gateway.js';
 
 const box = document.getElementById('checkout');
@@ -116,15 +116,9 @@ async function showOrder() {
       <h2 class="mb">How do you want to pay?</h2>
       <div class="pay-grid mb">${methodButtons}</div>
 
-      ${GATEWAY_MODE === 'demo'
-        ? `<div class="alert alert-warning mb">
-             <strong>Demo mode.</strong> No real money moves and no real
-             bKash page opens. Turn on the real gateway by deploying the
-             Edge Function — see app/supabase/README.md.
-           </div>`
-        : `<div class="alert alert-info mb">
-             You will be taken to the secure SSLCommerz page to finish paying.
-           </div>`}
+      <div class="alert alert-info mb">
+        You will be taken to a secure payment page to finish paying.
+      </div>
 
       <button class="btn btn-lg btn-block" type="button" id="pay-btn">
         Pay ${taka(batch.monthly_fee)}
@@ -161,17 +155,10 @@ async function pay(batch) {
     const newTranId = await startPayment(batch.id, method);
 
     // 2. send the student to the gateway
+    //    This is the only way a payment can be completed. If it
+    //    throws we stay here and say why, rather than pretending.
     const redirectUrl = await openGateway(newTranId);
-
-    if (redirectUrl) {
-      window.location.href = redirectUrl;      // real gateway
-      return;
-    }
-
-    // DEMO: there is no gateway, so mark it paid ourselves
-    // and go to the same page the real gateway would return to.
-    await demoPay(newTranId);
-    window.location.href = 'checkout.html?tran=' + newTranId;
+    window.location.href = redirectUrl;
   } catch (err) {
     toast(err.message, 'error');
     busy(button, false);

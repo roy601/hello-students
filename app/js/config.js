@@ -7,23 +7,18 @@
 // ============================================================
 
 // ============================================================
-//  HOW PAYMENTS WORK RIGHT NOW
+//  HOW PAYMENTS WORK
 //
-//    'demo'        no gateway, no server needed. The order is
-//                  marked paid straight away so the project
-//                  can be shown working.
+//  The browser never talks to the payment gateway. It asks our
+//  own server, and the server holds the secret key and decides
+//  which gateway to use (PAYMENT_PROVIDER in server/.env).
 //
-//    'sslcommerz'  the real thing. Needs the payment server
-//                  running (npm start) with your store id and
-//                  password in server/.env
-//
-//  Change this ONE word when your SSLCommerz account is ready.
+//  There is deliberately no "demo" or "test" switch here. One
+//  used to exist and it marked orders paid without any money
+//  moving. To try the flow safely, point the SERVER at the
+//  gateway's sandbox instead — real code path, no real taka.
 // ============================================================
-export const GATEWAY_MODE = 'demo';
 
-// The payment API is served by the same server as this page,
-// so it needs no address at all. Only set this if you ever
-// host the API somewhere separate.
 export const PAYMENT_SERVER_URL = '';
 
 export const SUPABASE_URL = 'https://fdbhieucrccvnzykpnpg.supabase.co';

@@ -4,10 +4,16 @@
 //  It does two jobs:
 //
 //    1. SERVES THE WEBSITE from the /app folder
-//    2. HANDLES PAYMENTS, because SSLCommerz needs a store
-//       password. That password proves a request came from
-//       our business. If it sat in app/js it would be public
-//       and anyone could charge money through our account.
+//    2. HANDLES PAYMENTS, because a gateway needs a secret
+//       key. That key proves a request came from our
+//       business. If it sat in app/js it would be public and
+//       anyone could charge money through our account.
+//
+//       PAYMENT_PROVIDER in server/.env picks which gateway
+//       runs:
+//         uddoktapay  (default) your own instance
+//         piprapay    self-hosted alternative
+//         sslcommerz  the hosted gateway
 //
 //  Both on one address, so the page and the payment API are
 //  the same origin and no CORS setup is needed.
@@ -30,9 +36,25 @@ const SSLCommerzPayment = require('sslcommerz-lts');
 const { createClient } = require('@supabase/supabase-js');
 const { startEmailWorker } = require('./email');
 
+const piprapay = require('./piprapay');
+const uddoktapay = require('./uddoktapay');
+
 const STORE_ID = process.env.STORE_ID;
 const STORE_PASSWORD = process.env.STORE_PASSWORD;
 const IS_LIVE = process.env.IS_LIVE === 'true';
+
+// Which gateway is in charge. A blank setting lands on the one
+// you actually use.
+const PROVIDER = ['sslcommerz', 'piprapay', 'uddoktapay']
+  .includes(process.env.PAYMENT_PROVIDER)
+  ? process.env.PAYMENT_PROVIDER
+  : 'uddoktapay';
+
+// The two self-hosted ones share a shape, so the routes below
+// talk to whichever is picked through the same three calls.
+const ADAPTER = PROVIDER === 'piprapay' ? piprapay
+  : PROVIDER === 'uddoktapay' ? uddoktapay
+  : null;
 const PORT = process.env.PORT || 5500;
 const SELF = process.env.SELF_URL || 'http://localhost:' + PORT;
 // The website and the API are on the same address now.
@@ -42,12 +64,15 @@ const path = require('path');
 const APP_DIR = path.join(__dirname, '..', 'app');
 
 // ---- which settings are present? ---------------------------
-// The website must always run, even before you have an
-// SSLCommerz account. So missing settings only switch OFF the
-// payment routes, they never stop the server.
+// The website must always run, even before you have a merchant
+// account. So missing settings only switch OFF the payment
+// routes, they never stop the server.
+const gatewaySettings = ADAPTER
+  ? ADAPTER.missingSettings().map((name) => [name, null])
+  : [['STORE_ID', STORE_ID], ['STORE_PASSWORD', STORE_PASSWORD]];
+
 const missing = [
-  ['STORE_ID', STORE_ID],
-  ['STORE_PASSWORD', STORE_PASSWORD],
+  ...gatewaySettings,
   ['SUPABASE_URL', process.env.SUPABASE_URL],
   ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
 ].filter(([, value]) => !value).map(([name]) => name);
@@ -131,6 +156,32 @@ app.post('/api/payment/init', async (req, res) => {
       .eq('id', user.id)
       .maybeSingle();
 
+    // ---- ask the gateway for a payment page ----------------
+    if (ADAPTER) {
+      const charge = await ADAPTER.createCharge({
+        order,
+        name: (profile && profile.full_name) || 'Student',
+        //  UddoktaPay validates this as an email, so the login
+        //  address is what goes here, not the phone number.
+        contact: user.email || 'student@hellostudents.com',
+        urls: {
+          success: SELF + '/api/payment/success',
+          cancel: SELF + '/api/payment/cancel',
+          webhook: SELF + '/api/payment/ipn',
+        },
+      });
+
+      //  Some gateways hand back their own id here and some do
+      //  not (UddoktaPay has no invoice until the student has
+      //  been through the page). Store it when there is one.
+      const patch = { provider: PROVIDER };
+      if (charge.providerRef) patch.provider_ref = charge.providerRef;
+
+      await db.from('payments').update(patch).eq('tran_id', order.tran_id);
+
+      return res.json({ redirect_url: charge.redirectUrl });
+    }
+
     // ---- ask SSLCommerz for a payment page -----------------
     const data = {
       total_amount: order.amount,
@@ -195,12 +246,32 @@ app.post('/api/payment/init', async (req, res) => {
 //  Safe to call twice: if the order is already handled it
 //  simply stops.
 // ============================================================
-async function confirmPayment(tranId, valId) {
-  const { data: order } = await db
-    .from('payments')
-    .select('id, amount, status')
-    .eq('tran_id', tranId)
-    .maybeSingle();
+async function confirmPayment(tranId, ref) {
+  //  WHICH ORDER IS THIS?
+  //
+  //  Three different answers depending on the gateway:
+  //    SSLCommerz  sends our own reference back
+  //    PipraPay    gives an id at checkout, which we stored
+  //    UddoktaPay  gives nothing until the student has paid
+  //
+  //  For that last case the only way to know is to verify the
+  //  invoice and read our reference out of the metadata we sent
+  //  with it. So when we have no reference, verify first and
+  //  let the answer tell us.
+  let proof = null;
+
+  if (!tranId && ADAPTER && ref) {
+    proof = await ADAPTER.verify(ref);
+    if (proof.tranId) tranId = proof.tranId;
+  }
+
+  let query = db.from('payments').select('id, amount, status, provider_ref, tran_id');
+
+  query = tranId
+    ? query.eq('tran_id', tranId)
+    : query.eq('provider_ref', String(ref));
+
+  const { data: order } = await query.maybeSingle();
 
   if (!order) return { ok: false, why: 'unknown order' };
   if (order.status === 'paid' || order.status === 'used') {
@@ -208,29 +279,69 @@ async function confirmPayment(tranId, valId) {
   }
   if (order.status !== 'initiated') return { ok: false, why: order.status };
 
-  // ---- ask SSLCommerz whether this really happened ---------
-  const proof = await gateway().validate({ val_id: valId });
-
-  const reallyPaid = proof.status === 'VALID' || proof.status === 'VALIDATED';
-  const amountMatches = Math.round(Number(proof.amount)) === order.amount;
-
-  if (!reallyPaid || !amountMatches) {
+  const fail = async (why, providerRef) => {
     await db.from('payments')
-      .update({ status: 'failed', provider: 'sslcommerz', provider_ref: valId })
+      .update({ status: 'failed', provider: PROVIDER, provider_ref: String(providerRef) })
       .eq('id', order.id);
-    return { ok: false, why: !reallyPaid ? 'not valid' : 'wrong amount' };
+    return { ok: false, why };
+  };
+
+  const succeed = async (providerRef) => {
+    await db.from('payments')
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        provider: PROVIDER,
+        provider_ref: String(providerRef),
+      })
+      .eq('id', order.id);
+    return { ok: true };
+  };
+
+  // ---- UddoktaPay / PipraPay -----------------------------
+  if (ADAPTER) {
+    //  Prefer an id we stored ourselves when the charge was
+    //  made; a URL the student came back on can be edited.
+    //  UddoktaPay has no such id, so there the invoice from the
+    //  return or the webhook is all there is — which is exactly
+    //  why it gets verified rather than believed.
+    const gatewayId = ref || order.provider_ref;
+    if (!gatewayId) return { ok: false, why: 'no payment id' };
+
+    //  Reuse the answer from the lookup above rather than
+    //  asking the same question twice.
+    if (!proof) proof = await ADAPTER.verify(gatewayId);
+
+    if (!proof.paid) return fail(proof.why || 'not completed', gatewayId);
+
+    //  The amount has to be checked or someone could pay 1 taka
+    //  for a 2,500 taka batch. It arrives as "2500.00", so it is
+    //  rounded before comparing.
+    if (Math.round(Number(proof.amount)) !== order.amount) {
+      return fail('wrong amount', gatewayId);
+    }
+
+    //  And the payment must be for THIS order. Without this a
+    //  real 100 taka invoice could be replayed against someone
+    //  else's 2,500 taka batch.
+    if (proof.tranId && proof.tranId !== order.tran_id) {
+      return fail('belongs to another order', gatewayId);
+    }
+
+    return succeed(proof.reference || gatewayId);
   }
 
-  await db.from('payments')
-    .update({
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-      provider: 'sslcommerz',
-      provider_ref: proof.bank_tran_id || valId,
-    })
-    .eq('id', order.id);
+  // ---- SSLCommerz ------------------------------------------
+  const sslProof = await gateway().validate({ val_id: ref });
 
-  return { ok: true };
+  const reallyPaid = sslProof.status === 'VALID' || sslProof.status === 'VALIDATED';
+  const amountMatches = Math.round(Number(sslProof.amount)) === order.amount;
+
+  if (!reallyPaid || !amountMatches) {
+    return fail(!reallyPaid ? 'not valid' : 'wrong amount', ref);
+  }
+
+  return succeed(sslProof.bank_tran_id || ref);
 }
 
 
@@ -244,18 +355,40 @@ async function confirmPayment(tranId, valId) {
 //  SSLCommerz cannot reach http://localhost with its IPN.
 // ============================================================
 async function handleReturn(req, res) {
-  const tranId = req.body.tran_id || req.query.tran_id;
-  const valId = req.body.val_id || req.query.val_id;
+  let tranId = req.body.tran_id || req.query.tran_id || '';
 
-  if (tranId && valId) {
-    try {
-      await confirmPayment(tranId, valId);
-    } catch (err) {
-      console.error('confirm failed:', err);
+  try {
+    if (ADAPTER) {
+      //  The gateway returns its own id, not our reference.
+      const gatewayId = ADAPTER.readInvoiceId
+        ? ADAPTER.readInvoiceId(req)
+        : ADAPTER.readPaymentId(req);
+
+      if (gatewayId) {
+        const found = await confirmPayment(null, gatewayId);
+        if (!found.ok) console.error(PROVIDER + ' return:', found.why);
+
+        //  The checkout page needs OUR reference to carry on.
+        //  confirmPayment has just written provider_ref, so the
+        //  row can be found by it either way.
+        if (!tranId) {
+          const { data: row } = await db
+            .from('payments')
+            .select('tran_id')
+            .eq('provider_ref', String(gatewayId))
+            .maybeSingle();
+          if (row) tranId = row.tran_id;
+        }
+      }
+    } else {
+      const valId = req.body.val_id || req.query.val_id;
+      if (tranId && valId) await confirmPayment(tranId, valId);
     }
+  } catch (err) {
+    console.error('confirm failed:', err);
   }
 
-  res.redirect(SITE_URL + '/checkout.html?tran=' + encodeURIComponent(tranId || ''));
+  res.redirect(SITE_URL + '/checkout.html?tran=' + encodeURIComponent(tranId));
 }
 
 app.post('/api/payment/success', handleReturn);
@@ -291,6 +424,31 @@ app.get('/api/payment/cancel', (req, res) => handleStopped(req, res, 'cancelled'
 // ============================================================
 app.post('/api/payment/ipn', async (req, res) => {
   try {
+    if (ADAPTER) {
+      //  Anyone can post to this address, so the key in the
+      //  header is what says the message is really the gateway.
+      if (!ADAPTER.webhookKeyIsGood(req.headers)) {
+        return res.status(401).json({ status: false, message: 'Unauthorized Action' });
+      }
+
+      //  The body says it was paid. We still ask the gateway
+      //  ourselves inside confirmPayment, because a correct key
+      //  proves who sent the message, not that money moved.
+      const gatewayId = req.body.invoice_id || req.body.pp_id;
+
+      if (!gatewayId) {
+        return res.status(400).json({ status: false, message: 'missing invoice_id' });
+      }
+
+      //  Deliberately NOT passing the tran_id from the body:
+      //  it is unverified. confirmPayment reads it back out of
+      //  the gateway's own answer instead.
+      const result = await confirmPayment(null, gatewayId);
+      if (!result.ok) console.error(PROVIDER + ' webhook:', result.why);
+
+      return res.status(200).json({ status: true, message: 'Webhook received' });
+    }
+
     const { tran_id, val_id } = req.body;
     if (!tran_id || !val_id) return res.status(400).send('missing fields');
 
@@ -323,6 +481,8 @@ app.get('/api/health', (req, res) => {
   res.json({
     website: 'running',
     payments: paymentsReady ? 'ready' : 'off',
+    provider: PROVIDER,
+    gateway_url: ADAPTER ? ADAPTER.baseUrl : undefined,
     missing_settings: missing,
     email: email.on ? 'sending' : 'off',
     email_missing: email.missing,
@@ -348,7 +508,9 @@ app.listen(PORT, () => {
   console.log('  http://localhost:' + PORT);
   console.log('');
   if (paymentsReady) {
-    console.log('  Payments: SSLCommerz ' + (IS_LIVE ? 'LIVE' : 'sandbox'));
+    console.log('  Payments: ' + (ADAPTER
+      ? ADAPTER.name + ' via ' + ADAPTER.baseUrl
+      : 'SSLCommerz ' + (IS_LIVE ? 'LIVE' : 'sandbox')));
   } else {
     console.log('  Payments: OFF (demo mode still works)');
     console.log('  To switch them on, fill in server/.env:');

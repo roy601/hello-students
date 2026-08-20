@@ -13,6 +13,7 @@ import { formatTime, taka, stars, safe } from './format.js';
 
 const subjectFilter = document.getElementById('f-subject');
 const areaFilter = document.getElementById('f-area');
+const gradeFilter = document.getElementById('f-grade');
 const feeFilter = document.getElementById('f-fee');
 const modeFilter = document.getElementById('f-mode');
 const searchBox = document.getElementById('f-search');
@@ -50,6 +51,18 @@ async function loadFilterOptions() {
     subjectFilter.appendChild(option);
   });
 
+  //  Grade lives on the subject, so the list of classes is the
+  //  distinct set across every subject. A Set keeps each one
+  //  once, and sorting keeps "Class 6" before "Class 9".
+  const grades = [...new Set((subjects || []).map((x) => x.grade_level))].sort();
+
+  grades.forEach((g) => {
+    const option = document.createElement('option');
+    option.value = g;
+    option.textContent = g;
+    gradeFilter.appendChild(option);
+  });
+
   const { data: areas } = await supabase
     .from('areas')
     .select('*')
@@ -83,7 +96,7 @@ async function search() {
     .select(`
       id, title, days, start_time, end_time, monthly_fee,
       seat_limit, seats_taken, is_online, created_at,
-      subjects ( name_en, grade_level ),
+      subjects!inner ( name_en, grade_level ),
       areas ( name_en, city ),
       tutor_profiles ( rating_avg, rating_count, verified_level,
                        profiles ( full_name ) )
@@ -93,6 +106,12 @@ async function search() {
   // Each filter is added only if the user chose something.
   if (subjectFilter.value) query = query.eq('subject_id', Number(subjectFilter.value));
   if (areaFilter.value) query = query.eq('area_id', Number(areaFilter.value));
+  //  grade_level sits on subjects, not batches, so this filters
+  //  through the joined table. That is why the select above
+  //  says subjects!inner: with a plain join PostgREST hands the
+  //  batch back anyway with subjects set to null, which looks
+  //  exactly like the filter doing nothing.
+  if (gradeFilter.value) query = query.eq('subjects.grade_level', gradeFilter.value);
   if (feeFilter.value) query = query.lte('monthly_fee', Number(feeFilter.value));
   if (modeFilter.value === 'online') query = query.eq('is_online', true);
   if (modeFilter.value === 'person') query = query.eq('is_online', false);
@@ -191,7 +210,7 @@ function cardHtml(batch) {
 }
 
 // ---- Re-run the search when a filter changes ---------------
-[subjectFilter, areaFilter, feeFilter, modeFilter, sortBox].forEach((control) => {
+[subjectFilter, gradeFilter, areaFilter, feeFilter, modeFilter, sortBox].forEach((control) => {
   control.addEventListener('change', search);
 });
 
@@ -205,6 +224,7 @@ searchBox.addEventListener('input', () => {
 
 document.getElementById('clear-filters').addEventListener('click', () => {
   subjectFilter.value = '';
+  gradeFilter.value = '';
   areaFilter.value = '';
   feeFilter.value = '';
   modeFilter.value = '';

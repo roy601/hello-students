@@ -90,7 +90,7 @@
 .class-tab:hover { color: var(--ink); background: var(--surface-2); }
 
 .class-tab.on {
-  color: var(--indigo);
+  color: var(--brand-text);
   border-bottom-color: var(--indigo);
 }
 
@@ -116,8 +116,6 @@
 /* ---- small helpers this file needs ------------------------ */
 .ico-sm { width: 17px; height: 17px; stroke-width: 1.8; }
 
-.avatar-sm { width: 26px; height: 26px; font-size: 10px; }
-
 /* the teacher's circle is darker so you can pick it out */
 .avatar-brand {
   background: linear-gradient(140deg, var(--indigo-deep), var(--indigo));
@@ -129,8 +127,6 @@
 /* ============================================================
    THE STREAM
    ============================================================ */
-.stream { max-width: 760px; }
-
 /* ---- the box you type a note into ------------------------- */
 .composer { padding: 0; margin-bottom: var(--gap); overflow: hidden; }
 
@@ -258,7 +254,7 @@
   overflow: hidden;
 }
 
-.post-link:hover { border-color: var(--indigo); color: var(--indigo); }
+.post-link:hover { border-color: var(--indigo); color: var(--brand-text); }
 
 
 /* ---- the replies under a note ----------------------------- */
@@ -476,7 +472,7 @@
   border-bottom: 2px solid var(--indigo);
 }
 
-.people-head h2 { margin: 0; font-size: 18px; color: var(--indigo); }
+.people-head h2 { margin: 0; font-size: 18px; color: var(--brand-text); }
 
 .person {
   display: flex;
@@ -495,7 +491,7 @@
 .person-phone {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--indigo);
+  color: var(--brand-text);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -625,4 +621,90 @@
 
 @media (max-width: 720px) {
   .rec-row { padding-left: var(--gap); padding-right: var(--gap); }
+}
+
+
+/* ============================================================
+   STREAM â€” RAIL AND THREADS
+   ============================================================ */
+
+/* The wall sits beside a narrow rail of what is due, which is
+   the layout people already know from other class tools. The
+   rail comes FIRST in the source so it reads before the wall
+   on a phone, where the two columns become one. */
+.stream {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: var(--gap-md);
+  align-items: start;
+  max-width: 1020px;
+}
+
+.stream-main { min-width: 0; }
+
+.stream-rail { position: sticky; top: 96px; }
+
+.rail-card { padding: var(--gap); }
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  margin-bottom: 10px;
+}
+
+.rail-head h3 { font-size: 15px; margin: 0; }
+
+.due-list { display: flex; flex-direction: column; gap: 12px; }
+
+.due-row { display: flex; flex-direction: column; gap: 2px; }
+
+.due-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.due-when { font-size: 12.5px; color: var(--muted); }
+
+.rail-all { margin-top: 14px; padding-left: 0; padding-right: 0; }
+
+/* The invite link is meant to be selected and copied, so it
+   wraps rather than being cut off with an ellipsis. */
+.rail-link {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  word-break: break-all;
+  user-select: all;
+}
+
+/* ---- the "view all comments" line ------------------------- */
+.cmt-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.cmt-more:hover { color: var(--brand-text); }
+
+@media (max-width: 900px) {
+  /* One column. The rail keeps its place at the top, where a
+     phone reader sees what is due before scrolling the wall. */
+  .stream { grid-template-columns: 1fr; }
+  .stream-rail { position: static; }
 }

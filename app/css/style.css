@@ -30,6 +30,12 @@
   --blue:        #38BDF8;
   --indigo-soft: #EFEEFF;
 
+  /* Brand colour when it is used as TEXT. Separate from
+     --indigo because #635BFF on a near-black page only reaches
+     4.18:1, under the 4.5:1 needed for body text. Backgrounds,
+     borders and the gradient keep the true brand colour. */
+  --brand-text:  var(--indigo);
+
   /* the one gradient used across the site */
   --grad: linear-gradient(100deg, var(--indigo) 0%, var(--violet) 52%, var(--blue) 100%);
 
@@ -51,6 +57,23 @@
   /* dark sections */
   --dark:   #0B0B12;
   --dark-2: #14141F;
+
+  /* surfaces that used to be written out in full. They are
+     tokens now so dark mode can swap them in one place. */
+  --topbar:       rgba(255,255,255,.74);
+  --topbar-tight: rgba(255,255,255,.90);
+  --topbar-line:  rgba(228,228,231,.85);
+  --hover-tint:   rgba(24,24,27,.045);
+  --skeleton:     #E9E9EE;
+  --th-bg:        #FCFCFD;
+  --placeholder:  #A1A1AA;
+
+  /* the thin border on badges and alerts */
+  --success-line: #ABEFC6;
+  --warning-line: #FEDF89;
+  --danger-line:  #FECDCA;
+  --info-line:    #B2DDFF;
+  --brand-line:   #C7C4FF;
 
   /* meaning */
   --success:    #15803D;  --success-bg: #ECFDF3;
@@ -82,6 +105,161 @@
 }
 
 
+/* ---------- 1b. DARK MODE ----------------------------------
+   Only the tokens change. Not one rule further down this file
+   mentions a colour directly any more, so swapping the values
+   here turns the whole site over.
+
+   The same list appears twice on purpose:
+
+     @media (prefers-color-scheme: dark)
+        for someone who has never touched our switch and whose
+        computer is set to dark. It skips anyone who has
+        explicitly chosen light, hence the :not().
+
+     [data-theme="dark"]
+        for someone who picked dark with our switch, whatever
+        their computer says.
+
+   Writing it once and hoping would mean the switch could not
+   override a light computer, or the computer could not lead
+   when nothing was picked.
+
+   color-scheme is what makes the scroll bars, the date picker
+   and the dropdown lists go dark too. Without it those stay
+   white and look broken against everything else. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --indigo-soft: rgba(99, 91, 255, .18);
+    --brand-text:  #9A93FF;
+
+    --bg:        #0B0B12;
+    --surface:   #14141F;
+    --surface-2: #1D1D2B;
+
+    --ink:     #F4F4F6;
+    --ink-2:   #C3C3CE;
+    --muted:   #9292A2;
+
+    --line:        #2A2A3B;
+    --line-2:      #22222F;
+    --line-strong: #3B3B50;
+
+    /* the landing page's dark bands must still read as bands,
+       so they sit a step above the page, not below it */
+    --dark:   #14141F;
+    --dark-2: #1D1D2B;
+
+    --topbar:       rgba(20, 20, 31, .72);
+    --topbar-tight: rgba(20, 20, 31, .92);
+    --topbar-line:  rgba(255, 255, 255, .09);
+    --hover-tint:   rgba(255, 255, 255, .06);
+    --skeleton:     #232333;
+    --th-bg:        #1A1A28;
+    --placeholder:  #8A8A9C;
+
+    /* meaning colours have to be lifted: #15803D on a near
+       black page is unreadable, so the text goes light and the
+       background becomes a low tint of the same hue */
+    --success:      #4ADE80;  --success-bg: rgba(34, 197, 94, .13);
+    --warning:      #FBBF24;  --warning-bg: rgba(245, 158, 11, .13);
+    --danger:       #F87171;  --danger-bg:  rgba(239, 68, 68, .13);
+    --info:         #60A5FA;  --info-bg:    rgba(59, 130, 246, .13);
+
+    --success-line: rgba(74, 222, 128, .30);
+    --warning-line: rgba(251, 191, 36, .30);
+    --danger-line:  rgba(248, 113, 113, .30);
+    --info-line:    rgba(96, 165, 250, .30);
+    --brand-line:   rgba(139, 131, 255, .35);
+
+    /* a soft shadow is invisible on a dark page, so these lean
+       on depth of black instead of opacity of grey */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .40);
+    --shadow:    0 4px 16px rgba(0, 0, 0, .45);
+    --shadow-lg: 0 14px 44px rgba(0, 0, 0, .55);
+    --shadow-xl: 0 34px 90px rgba(0, 0, 0, .65);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --indigo-soft: rgba(99, 91, 255, .18);
+  --brand-text:  #9A93FF;
+
+  --bg:        #0B0B12;
+  --surface:   #14141F;
+  --surface-2: #1D1D2B;
+
+  --ink:     #F4F4F6;
+  --ink-2:   #C3C3CE;
+  --muted:   #9292A2;
+
+  --line:        #2A2A3B;
+  --line-2:      #22222F;
+  --line-strong: #3B3B50;
+
+  --dark:   #14141F;
+  --dark-2: #1D1D2B;
+
+  --topbar:       rgba(20, 20, 31, .72);
+  --topbar-tight: rgba(20, 20, 31, .92);
+  --topbar-line:  rgba(255, 255, 255, .09);
+  --hover-tint:   rgba(255, 255, 255, .06);
+  --skeleton:     #232333;
+  --th-bg:        #1A1A28;
+  --placeholder:  #8A8A9C;
+
+  --success:      #4ADE80;  --success-bg: rgba(34, 197, 94, .13);
+  --warning:      #FBBF24;  --warning-bg: rgba(245, 158, 11, .13);
+  --danger:       #F87171;  --danger-bg:  rgba(239, 68, 68, .13);
+  --info:         #60A5FA;  --info-bg:    rgba(59, 130, 246, .13);
+
+  --success-line: rgba(74, 222, 128, .30);
+  --warning-line: rgba(251, 191, 36, .30);
+  --danger-line:  rgba(248, 113, 113, .30);
+  --info-line:    rgba(96, 165, 250, .30);
+  --brand-line:   rgba(139, 131, 255, .35);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .40);
+  --shadow:    0 4px 16px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 14px 44px rgba(0, 0, 0, .55);
+  --shadow-xl: 0 34px 90px rgba(0, 0, 0, .65);
+}
+
+
+/* ---- the switch in the top bar ---------------------------- */
+.theme-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 9px;
+  color: var(--ink-2);
+  line-height: 0;
+  flex: 0 0 auto;
+}
+
+.theme-btn:hover { background: var(--hover-tint); }
+
+/* One button, two icons. Only the one for the theme you are
+   NOT in is shown, because that is what the button will give
+   you if you press it. */
+.theme-btn .moon { display: none; }
+.theme-btn .sun  { display: block; }
+
+:root[data-theme="dark"] .theme-btn .moon { display: block; }
+:root[data-theme="dark"] .theme-btn .sun  { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-btn .moon { display: block; }
+  :root:not([data-theme="light"]) .theme-btn .sun  { display: none; }
+}
+
+
 /* ---------- 2. BASE ---------------------------------------- */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -106,7 +284,7 @@ h4 { font-size: 15px; }
 p  { margin: 0; }
 ul { margin: 0; padding: 0; list-style: none; }
 
-a { color: var(--indigo); text-decoration: none; }
+a { color: var(--brand-text); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 .muted  { color: var(--muted); font-size: 14px; }
@@ -180,8 +358,8 @@ a:hover { text-decoration: underline; }
   height: 58px;
   padding: 0 10px 0 18px;
   border-radius: 18px;
-  border: 1px solid rgba(228,228,231,.85);
-  background: rgba(255,255,255,.74);
+  border: 1px solid var(--topbar-line);
+  background: var(--topbar);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   backdrop-filter: blur(14px) saturate(160%);
   box-shadow: 0 4px 22px rgba(24,24,27,.07);
@@ -190,7 +368,7 @@ a:hover { text-decoration: underline; }
 }
 .topbar-inner.tight {
   max-width: 980px;
-  background: rgba(255,255,255,.9);
+  background: var(--topbar-tight);
   box-shadow: 0 8px 30px rgba(24,24,27,.11);
 }
 
@@ -224,8 +402,8 @@ body { padding-top: 84px; }
   padding: 8px 12px; border-radius: 9px;
   transition: color .15s ease, background .15s ease;
 }
-.nav a.nav-link:hover { color: var(--ink); background: rgba(24,24,27,.045); text-decoration: none; }
-.nav a.nav-link.active { color: var(--indigo); background: var(--indigo-soft); }
+.nav a.nav-link:hover { color: var(--ink); background: var(--hover-tint); text-decoration: none; }
+.nav a.nav-link.active { color: var(--brand-text); background: var(--indigo-soft); }
 
 .nav-user {
   display: flex; align-items: center; gap: var(--gap-sm);
@@ -247,7 +425,7 @@ body { padding-top: 84px; }
   padding: 7px; border-radius: 9px; color: var(--ink-2);
   line-height: 0;
 }
-.bell:hover { background: rgba(24,24,27,.045); }
+.bell:hover { background: var(--hover-tint); }
 
 .bell-dot {
   position: absolute; top: 1px; right: 1px;
@@ -317,8 +495,8 @@ body { padding-top: 84px; }
 }
 .btn-outline:hover { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
-.btn-ghost { background: transparent; color: var(--indigo); box-shadow: none; }
-.btn-ghost:hover { background: var(--indigo-soft); color: var(--indigo); box-shadow: none; }
+.btn-ghost { background: transparent; color: var(--brand-text); box-shadow: none; }
+.btn-ghost:hover { background: var(--indigo-soft); color: var(--brand-text); box-shadow: none; }
 
 .btn-danger { background: #DC2626; box-shadow: 0 5px 16px rgba(220,38,38,.28); }
 .btn-danger:hover { background: #B91C1C; box-shadow: 0 11px 28px rgba(220,38,38,.34); }
@@ -356,7 +534,7 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--indigo);
   box-shadow: 0 0 0 4px rgba(99,91,255,.13);
 }
-input::placeholder, textarea::placeholder { color: #A1A1AA; }
+input::placeholder, textarea::placeholder { color: var(--placeholder); }
 textarea { resize: vertical; min-height: 96px; line-height: 1.55; }
 
 select {
@@ -416,7 +594,7 @@ select {
 .amount-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .amount-opt:hover { transform: translateY(-2px); }
 .amount-opt:has(input:checked) {
-  border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo);
+  border-color: var(--indigo); background: var(--indigo-soft); color: var(--brand-text);
   box-shadow: 0 0 0 1px var(--indigo);
 }
 
@@ -556,7 +734,7 @@ th {
   letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
   padding: 13px var(--gap);
   border-bottom: 1px solid var(--line-2);
-  background: #FCFCFD; white-space: nowrap;
+  background: var(--th-bg); white-space: nowrap;
 }
 td { padding: 14px var(--gap); border-bottom: 1px solid var(--line-2); font-size: 14.5px; vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
@@ -571,20 +749,20 @@ tbody tr:hover { background: var(--surface-2); }
   background: var(--surface-2); color: var(--ink-2);
   border: 1px solid var(--line); white-space: nowrap;
 }
-.badge-success { background: var(--success-bg); color: var(--success); border-color: #ABEFC6; }
-.badge-warning { background: var(--warning-bg); color: var(--warning); border-color: #FEDF89; }
-.badge-danger  { background: var(--danger-bg);  color: var(--danger);  border-color: #FECDCA; }
-.badge-info    { background: var(--info-bg);    color: var(--info);    border-color: #B2DDFF; }
-.badge-brand   { background: var(--indigo-soft);color: var(--indigo);  border-color: #C7C4FF; }
+.badge-success { background: var(--success-bg); color: var(--success); border-color: var(--success-line); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-line); }
+.badge-danger  { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-line); }
+.badge-info    { background: var(--info-bg);    color: var(--info);    border-color: var(--info-line); }
+.badge-brand   { background: var(--indigo-soft);color: var(--brand-text);  border-color: var(--brand-line); }
 
 .alert {
   border-radius: var(--radius); padding: 14px 17px;
   font-size: 14.5px; border: 1px solid;
 }
-.alert-info    { background: var(--info-bg);    color: var(--info);    border-color: #B2DDFF; }
-.alert-warning { background: var(--warning-bg); color: var(--warning); border-color: #FEDF89; }
-.alert-success { background: var(--success-bg); color: var(--success); border-color: #ABEFC6; }
-.alert-danger  { background: var(--danger-bg);  color: var(--danger);  border-color: #FECDCA; }
+.alert-info    { background: var(--info-bg);    color: var(--info);    border-color: var(--info-line); }
+.alert-warning { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-line); }
+.alert-success { background: var(--success-bg); color: var(--success); border-color: var(--success-line); }
+.alert-danger  { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-line); }
 
 .empty {
   background: var(--surface);
@@ -600,7 +778,7 @@ tbody tr:hover { background: var(--surface-2); }
   width: 68px; height: 68px; margin: 0 auto var(--gap-sm);
   border-radius: 50%;
   background: var(--indigo-soft);
-  color: var(--indigo);
+  color: var(--brand-text);
 }
 
 .ico {
@@ -612,7 +790,7 @@ tbody tr:hover { background: var(--surface-2); }
 .ico-lg { width: 34px; height: 34px; stroke-width: 1.5; }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, #E9E9EE 50%, var(--surface-2) 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--skeleton) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.3s infinite;
   border-radius: var(--radius);
@@ -699,9 +877,9 @@ tbody tr:hover { background: var(--surface-2); }
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 12.5px; font-weight: 650;
   letter-spacing: .1em; text-transform: uppercase;
-  color: var(--indigo);
+  color: var(--brand-text);
   background: var(--indigo-soft);
-  border: 1px solid #C7C4FF;
+  border: 1px solid var(--brand-line);
   border-radius: 30px;
   padding: 5px 13px;
   margin-bottom: var(--gap-sm);
@@ -782,7 +960,7 @@ tbody tr:hover { background: var(--surface-2); }
 .mode-opt:disabled { opacity: .55; cursor: not-allowed; }
 .mode-opt.on { border-color: var(--indigo); background: var(--indigo-soft); box-shadow: 0 0 0 1px var(--indigo); }
 .mode-title { font-size: 14px; font-weight: 650; color: var(--ink); }
-.mode-opt.on .mode-title { color: var(--indigo); }
+.mode-opt.on .mode-title { color: var(--brand-text); }
 .mode-note { font-size: 12px; color: var(--muted); line-height: 1.35; }
 
 .watch-log {
@@ -810,7 +988,7 @@ tbody tr:hover { background: var(--surface-2); }
   font-size: 14.5px; line-height: 1.45; word-break: break-word;
 }
 .bubble-row.mine .bubble { background: var(--grad); color: #fff; }
-.bubble-name { font-size: 12px; font-weight: 700; color: var(--indigo); margin-bottom: 2px; }
+.bubble-name { font-size: 12px; font-weight: 700; color: var(--brand-text); margin-bottom: 2px; }
 .bubble-time { font-size: 11px; opacity: .65; margin-top: 3px; }
 .chat-form { display: flex; gap: var(--gap-xs); padding-top: var(--gap-sm); }
 .chat-form input { flex: 1; }
@@ -835,7 +1013,7 @@ tbody tr:hover { background: var(--surface-2); }
 .pay-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .pay-opt:hover { transform: translateY(-2px); }
 .pay-opt.on {
-  border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo);
+  border-color: var(--indigo); background: var(--indigo-soft); color: var(--brand-text);
   box-shadow: 0 0 0 1px var(--indigo);
 }
 
@@ -871,7 +1049,7 @@ tbody tr:hover { background: var(--surface-2); }
 .mt-lg { margin-top: var(--gap-lg); }  .mb-lg { margin-bottom: var(--gap-lg); }
 
 .center-row    { justify-content: center; }
-.text-brand    { color: var(--indigo); }
+.text-brand    { color: var(--brand-text); }
 .text-danger   { color: var(--danger); }
 .text-success  { color: var(--success); }
 .w-full        { width: 100%; }
@@ -1082,6 +1260,10 @@ input, select, textarea { transition: border-color .15s ease, box-shadow .15s ea
   border: 0;
 }
 
+
+/* a tighter list row, for short lists like past withdrawals */
+.list-row.compact { padding: var(--gap-sm) var(--gap); }
+.list-row.compact h3 { font-size: 15px; }
 
 /* ---- complaints (admin) -----------------------------------
    One card per complaint, with the student's own words quoted,

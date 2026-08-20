@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase.js';
 import { icon } from './icons.js';
+import { toggleTheme, watchSystemTheme } from './theme.js';
 import { initials, safe, timeAgo } from './format.js';
 import { setupScrollProgress } from './ui.js';
 
@@ -96,6 +97,7 @@ export async function renderTopbar(activePage = '') {
     links.push({ href: 'admin-dashboard.html', label: 'Overview' });
     links.push({ href: 'admin-tutors.html', label: 'Tutor approvals' });
     links.push({ href: 'admin-disputes.html', label: 'Complaints' });
+    links.push({ href: 'admin-payouts.html', label: 'Withdrawals' });
   }
 
   const linksHtml = links
@@ -129,6 +131,12 @@ export async function renderTopbar(activePage = '') {
         <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu">&#9776;</button>
         <nav class="nav" id="main-nav">
           ${linksHtml}
+          <button class="theme-btn" id="theme-btn" type="button"
+                  title="Switch between light and dark"
+                  aria-label="Switch between light and dark">
+            <span class="sun">${icon('sun')}</span>
+            <span class="moon">${icon('moon')}</span>
+          </button>
           ${rightSide}
         </nav>
         <div class="dropdown" id="notif-box" hidden>
@@ -142,6 +150,14 @@ export async function renderTopbar(activePage = '') {
   document.getElementById('menu-btn').addEventListener('click', () => {
     document.getElementById('main-nav').classList.toggle('open');
   });
+
+  // light / dark switch
+  document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+
+  //  If they are on 'system' and the computer flips at sunset,
+  //  the CSS has already swapped by itself. This is only here
+  //  so the icon on the button keeps up with it.
+  watchSystemTheme(() => {});
 
   // a reading progress line along the very top of the page
   if (!document.getElementById('scroll-progress')) setupScrollProgress();

@@ -1,0 +1,46 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",      "title": "A — Premium SaaS (what is live now)", "x": 0,    "y": 0,    "w": 1280, "h": 1000 },
+    { "file": "Local.dc.html",     "title": "B — Bengali-first",                   "x": 1400, "y": 0,    "w": 1280, "h": 1000 },
+    { "file": "Proof.dc.html",     "title": "C — Proof-first",                     "x": 0,    "y": 1220, "w": 1280, "h": 1000 },
+    { "file": "Editorial.dc.html", "title": "D — Editorial trust",                 "x": 1400, "y": 1220, "w": 1280, "h": 1000 }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -300,
+      "w": 620,
+      "text": "FOUR DIRECTIONS FOR THE LANDING PAGE\n\nEach one is clickable — try the control in it before you judge it.\nA: the product tabs. B: the বাংলা / English switch. C: the filters.\nD: the questions.\n\nAll four use real HelloStudents content: real batch names, real ৳ fees,\nthe real 85/15 split. Nothing here is invented about the product."
+    },
+    {
+      "id": "note-a",
+      "x": 700,
+      "y": -300,
+      "w": 380,
+      "text": "A — PREMIUM SAAS\nThe incumbent, tightened. Included so the others get judged against something, not against memory.\n\nFOR: signals \"serious software\". Familiar to anyone who has seen Linear or Stripe.\n\nAGAINST: it looks like every other SaaS site, and it says nothing about Bangladesh. Teachers are not SaaS buyers — a coaching-centre teacher has never seen a page like this and has no reason to trust it."
+    },
+    {
+      "id": "note-b",
+      "x": 1400,
+      "y": -300,
+      "w": 380,
+      "text": "B — BENGALI-FIRST\nবাংলা leads, English is the toggle. Warm paper instead of the indigo wash. Three plain steps instead of a feature grid.\n\nFOR: it speaks to the person who actually signs up. The three-step block answers the real question — \"what do I actually do?\"\n\nAGAINST: two languages of copy to write and maintain forever. And some tutors read English-language design as higher status; this may read as downmarket to them."
+    },
+    {
+      "id": "note-c",
+      "x": 0,
+      "y": 2280,
+      "w": 380,
+      "text": "C — PROOF-FIRST\nNo hero at all. You land in the live batch list, and the filters work.\n\nFOR: the product is the pitch. A visiting teacher sees peers charging ৳2,500 and keeping 85% — that is more persuasive than any headline.\n\nAGAINST: with one published batch today this page looks abandoned. It only works once the marketplace is genuinely full, and it gives a cold visitor no story."
+    },
+    {
+      "id": "note-d",
+      "x": 1400,
+      "y": 2280,
+      "w": 380,
+      "text": "D — EDITORIAL TRUST\nAimed at the parent, not the student. Serif, quiet, one column. The four questions are the page.\n\nFOR: education is a trust purchase, and a parent handing over ৳2,500 a month has exactly these four worries. Every answer is true of what you have built — approval, refunds, watermarking, 85/15.\n\nAGAINST: quiet. No energy, nothing to screenshot, and it may read as old-fashioned to a 17-year-old picking their own batch."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

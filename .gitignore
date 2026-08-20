@@ -13,6 +13,10 @@ node_modules/
 # Secrets — never commit these
 .env
 .env.local
+# any .env.something (backups, .env.production), but keep the
+# example, which holds placeholders only
+.env.*
+!.env.example
 
 # Archives
 *.zip
