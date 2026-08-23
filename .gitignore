@@ -20,3 +20,10 @@ node_modules/
 
 # Archives
 *.zip
+
+# Kept off GitHub on purpose
+# These are already ignored here, but a file git ALREADY tracks
+# keeps being committed regardless — see the git rm --cached
+# step. Ignoring only stops NEW files being picked up.
+app/db/
+Requirements/

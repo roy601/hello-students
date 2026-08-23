@@ -88,10 +88,12 @@ export async function renderTopbar(activePage = '') {
 
   if (profile?.role === 'student') {
     links.push({ href: 'student-dashboard.html', label: 'My classes' });
+    links.push({ href: 'schedule.html', label: 'My week' });
     links.push({ href: 'student-wallet.html', label: 'Wallet' });
   } else if (profile?.role === 'tutor') {
     links.push({ href: 'tutor-dashboard.html', label: 'Dashboard' });
     links.push({ href: 'tutor-batches.html', label: 'My batches' });
+    links.push({ href: 'schedule.html', label: 'My week' });
     links.push({ href: 'tutor-students.html', label: 'Students' });
   } else if (profile?.role === 'admin') {
     links.push({ href: 'admin-dashboard.html', label: 'Overview' });
