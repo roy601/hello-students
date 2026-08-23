@@ -502,6 +502,31 @@ app.use((req, res) => {
 });
 
 
+// ============================================================
+//  RUNNING IT
+//
+//  Two ways, on purpose:
+//
+//    npm start        a normal long-lived process on your
+//                     machine. That is the branch below.
+//
+//    on Vercel        the file is imported, not run, and each
+//                     request wakes a short-lived function.
+//                     There is no port to listen on, so we
+//                     must NOT call listen — we just hand the
+//                     app over with module.exports.
+//
+//  require.main === module is what tells the two apart: it is
+//  true only when node was pointed straight at this file.
+// ============================================================
+module.exports = app;
+
+if (require.main !== module) {
+  //  Imported, so something else is doing the listening.
+  //  Stop here before the banner and the listen call.
+  return;
+}
+
 app.listen(PORT, () => {
   console.log('');
   console.log('  HelloStudents is running');
