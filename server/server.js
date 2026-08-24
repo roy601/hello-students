@@ -100,9 +100,37 @@ function cleanUrl(name, raw) {
   return value;
 }
 
-const SELF = cleanUrl('SELF_URL', process.env.SELF_URL) || 'http://localhost:' + PORT;
+// ---- where are we, from the outside? -----------------------
+//  A gateway has to be told an address it can actually reach.
+//  Getting this wrong is invisible until a student pays and is
+//  sent back to a machine that is not ours, so work it out
+//  rather than relying on somebody typing it in:
+//
+//    1. SELF_URL, if it is set and usable
+//    2. the address the host tells us it gave us. Vercel sets
+//       VERCEL_PROJECT_PRODUCTION_URL (the stable domain) and
+//       VERCEL_URL (this exact deployment), both without a
+//       scheme, both always https
+//    3. localhost, which only works on a developer machine
+function hostGuess() {
+  const fromHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+
+  return fromHost ? 'https://' + String(fromHost).replace(/^https?:\/\//, '') : null;
+}
+
+const SELF =
+  cleanUrl('SELF_URL', process.env.SELF_URL) ||
+  hostGuess() ||
+  'http://localhost:' + PORT;
 // The website and the API are on the same address now.
 const SITE_URL = cleanUrl('SITE_URL', process.env.SITE_URL) || SELF;
+
+//  Say which of the three we ended up using, so a wrong address
+//  is obvious in the logs and in /api/health.
+const SELF_FROM = cleanUrl('SELF_URL', process.env.SELF_URL) ? 'SELF_URL'
+  : hostGuess() ? 'the host (VERCEL_URL)'
+  : 'the localhost fallback';
 
 const path = require('path');
 const APP_DIR = path.join(__dirname, '..', 'app');
@@ -583,6 +611,7 @@ app.get('/api/health', (req, res) => {
     //  A gateway lives on the public internet. If these say
     //  localhost it cannot reach us, and a student will be sent
     //  back to their OWN machine after paying.
+    self_from: SELF_FROM,
     reachable: /^https?:\/\/(localhost|127\.0\.0\.1)/.test(SELF)
       ? 'NO - SELF_URL points at localhost'
       : 'yes',
