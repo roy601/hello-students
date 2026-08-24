@@ -1,0 +1,23 @@
+# ============================================================
+#  Things Vercel should not upload or try to build.
+# ============================================================
+
+# The old Supabase Edge Functions. They were replaced by the
+# Node server in /server, and nothing in the app calls them any
+# more. They are written for DENO -- they use the Deno global
+# and import straight from https://esm.sh -- so Vercel's Node
+# TypeScript cannot compile them and fails the whole build:
+#
+#   error TS2304: Cannot find name 'Deno'.
+#
+# They are dead code. Excluding them here fixes the build; the
+# tidier answer is to delete the folder.
+app/supabase/
+
+# The design canvas. A 2.2 MB generated file — the biggest
+# thing in the repo, and not part of the website.
+design-work/
+
+# Never needed on the server
+node_modules/
+*.zip

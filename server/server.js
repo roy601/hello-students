@@ -56,9 +56,53 @@ const ADAPTER = PROVIDER === 'piprapay' ? piprapay
   : PROVIDER === 'uddoktapay' ? uddoktapay
   : null;
 const PORT = process.env.PORT || 5500;
-const SELF = process.env.SELF_URL || 'http://localhost:' + PORT;
+// ---- read a URL setting, and refuse to trust it blindly ----
+//  A hosting dashboard has a NAME box and a VALUE box, and it
+//  is easy to paste the whole line into the value one. That
+//  produces settings like "SELF_URL   https://example.com",
+//  which used to be glued straight onto /api/payment/success
+//  and handed to the gateway. The student then landed on a 404
+//  at the GATEWAY, with no clue why.
+//
+//  So: strip an accidental name prefix, trim it, and check it
+//  really parses as a URL before believing it.
+function cleanUrl(name, raw) {
+  if (!raw) return null;
+
+  let value = String(raw).trim();
+
+  //  "SELF_URL https://x" or "SELF_URL=https://x"
+  const pasted = new RegExp('^' + name + '\s*=?\s*', 'i');
+  value = value.replace(pasted, '').trim();
+
+  //  a stray quote from a copy and paste
+  value = value.replace(/^["']|["']$/g, '').trim();
+
+  //  no trailing slash, so SELF + '/api/...' never doubles up
+  value = value.replace(/\/+$/, '');
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('not http');
+    }
+  } catch {
+    console.error('');
+    console.error('  !! ' + name + ' is not a usable address:');
+    console.error('     ' + JSON.stringify(raw));
+    console.error('     Put ONLY the address in the value box, for example');
+    console.error('     https://hello-students.vercel.app');
+    console.error('     Ignoring it and falling back to localhost.');
+    console.error('');
+    return null;
+  }
+
+  return value;
+}
+
+const SELF = cleanUrl('SELF_URL', process.env.SELF_URL) || 'http://localhost:' + PORT;
 // The website and the API are on the same address now.
-const SITE_URL = process.env.SITE_URL || SELF;
+const SITE_URL = cleanUrl('SITE_URL', process.env.SITE_URL) || SELF;
 
 const path = require('path');
 const APP_DIR = path.join(__dirname, '..', 'app');
@@ -535,6 +579,13 @@ app.get('/api/health', (req, res) => {
     email_missing: email.missing,
     mode: IS_LIVE ? 'LIVE' : 'sandbox',
     site: SITE_URL,
+    self: SELF,
+    //  A gateway lives on the public internet. If these say
+    //  localhost it cannot reach us, and a student will be sent
+    //  back to their OWN machine after paying.
+    reachable: /^https?:\/\/(localhost|127\.0\.0\.1)/.test(SELF)
+      ? 'NO - SELF_URL points at localhost'
+      : 'yes',
   });
 });
 
@@ -587,6 +638,19 @@ app.listen(PORT, () => {
     console.log('  Payments: OFF (demo mode still works)');
     console.log('  To switch them on, fill in server/.env:');
     console.log('    ' + missing.join(', '));
+  }
+
+  //  The single most common reason a payment "does not come
+  //  back": the gateway was handed a localhost address, which
+  //  only exists on this machine.
+  if (paymentsReady && /^https?:\/\/(localhost|127\.0\.0\.1)/.test(SELF)) {
+    console.log('');
+    console.log('  !! WARNING: the gateway is being told to send students to');
+    console.log('     ' + SELF);
+    console.log('     That address only exists on this computer, so:');
+    console.log('       - the webhook can NEVER reach you');
+    console.log('       - some gateways drop the :port on the way back');
+    console.log('     Set SELF_URL and SITE_URL to a public https address.');
   }
 
   if (email.on) {
