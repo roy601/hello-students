@@ -46,6 +46,27 @@ async function start() {
     return;
   }
 
+  //  The server sends us here when a payment came back that it
+  //  could not match to an order. Never show "no batch chosen"
+  //  to someone who has just handed over money.
+  if (params.get('unmatched')) {
+    box.innerHTML = `
+      <div class="card center">
+        <div class="result-mark bad">&#10007;</div>
+        <h2 class="mt">We could not match that payment</h2>
+        <p class="muted mt-xs">
+          If money left your account it has not been lost. Check My Classes
+          first — if the batch is not there, report it and an admin will
+          look into it.
+        </p>
+        <div class="row center-row mt-md">
+          <a class="btn" href="student-dashboard.html">Go to My Classes</a>
+          <a class="btn btn-outline" href="browse.html">Find a batch</a>
+        </div>
+      </div>`;
+    return;
+  }
+
   if (!batchId) {
     box.innerHTML = '<div class="alert alert-danger">No batch was chosen.</div>';
     return;

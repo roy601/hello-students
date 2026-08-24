@@ -273,17 +273,19 @@ async function confirmPayment(tranId, ref) {
 
   const { data: order } = await query.maybeSingle();
 
-  if (!order) return { ok: false, why: 'unknown order' };
+  if (!order) return { ok: false, why: 'unknown order', tranId: tranId || null };
   if (order.status === 'paid' || order.status === 'used') {
-    return { ok: true, why: 'already confirmed' };
+    return { ok: true, why: 'already confirmed', tranId: order.tran_id };
   }
-  if (order.status !== 'initiated') return { ok: false, why: order.status };
+  if (order.status !== 'initiated') {
+    return { ok: false, why: order.status, tranId: order.tran_id };
+  }
 
   const fail = async (why, providerRef) => {
     await db.from('payments')
       .update({ status: 'failed', provider: PROVIDER, provider_ref: String(providerRef) })
       .eq('id', order.id);
-    return { ok: false, why };
+    return { ok: false, why, tranId: order.tran_id };
   };
 
   const succeed = async (providerRef) => {
@@ -295,7 +297,7 @@ async function confirmPayment(tranId, ref) {
         provider_ref: String(providerRef),
       })
       .eq('id', order.id);
-    return { ok: true };
+    return { ok: true, tranId: order.tran_id };
   };
 
   // ---- UddoktaPay / PipraPay -----------------------------
@@ -306,7 +308,7 @@ async function confirmPayment(tranId, ref) {
     //  return or the webhook is all there is — which is exactly
     //  why it gets verified rather than believed.
     const gatewayId = ref || order.provider_ref;
-    if (!gatewayId) return { ok: false, why: 'no payment id' };
+    if (!gatewayId) return { ok: false, why: 'no payment id', tranId: order.tran_id };
 
     //  Reuse the answer from the lookup above rather than
     //  asking the same question twice.
@@ -368,17 +370,15 @@ async function handleReturn(req, res) {
         const found = await confirmPayment(null, gatewayId);
         if (!found.ok) console.error(PROVIDER + ' return:', found.why);
 
-        //  The checkout page needs OUR reference to carry on.
-        //  confirmPayment has just written provider_ref, so the
-        //  row can be found by it either way.
-        if (!tranId) {
-          const { data: row } = await db
-            .from('payments')
-            .select('tran_id')
-            .eq('provider_ref', String(gatewayId))
-            .maybeSingle();
-          if (row) tranId = row.tran_id;
-        }
+        //  Take our reference straight from the answer.
+        //  It used to be looked up by provider_ref instead, and
+        //  that quietly broke: confirmPayment writes the gateway
+        //  reference into that column as it goes, so by the time
+        //  we searched, the value we were searching FOR was no
+        //  longer the value in the row. The student then arrived
+        //  at checkout.html with an empty tran and saw the wrong
+        //  page, even though the payment had gone through.
+        if (!tranId && found.tranId) tranId = found.tranId;
       }
     } else {
       const valId = req.body.val_id || req.query.val_id;
@@ -386,6 +386,14 @@ async function handleReturn(req, res) {
     }
   } catch (err) {
     console.error('confirm failed:', err);
+  }
+
+  //  If we still cannot say which order this was, do NOT send
+  //  them to a bare checkout page — it would say "No batch was
+  //  chosen", which is a frightening thing to read straight
+  //  after paying. Say plainly that we could not match it.
+  if (!tranId) {
+    return res.redirect(SITE_URL + '/checkout.html?unmatched=1');
   }
 
   res.redirect(SITE_URL + '/checkout.html?tran=' + encodeURIComponent(tranId));
@@ -396,7 +404,38 @@ app.get('/api/payment/success', handleReturn);
 
 
 async function handleStopped(req, res, newStatus) {
-  const tranId = req.body.tran_id || req.query.tran_id;
+  let tranId = req.body.tran_id || req.query.tran_id || '';
+
+  //  A student who backs out comes back the same way as one who
+  //  paid: with the GATEWAY's invoice id, not our reference. So
+  //  the order has to be found through the invoice before it can
+  //  be marked cancelled — otherwise it sits on 'initiated' for
+  //  ever and the student lands on an empty checkout page.
+  if (!tranId && ADAPTER) {
+    const gatewayId = ADAPTER.readInvoiceId
+      ? ADAPTER.readInvoiceId(req)
+      : ADAPTER.readPaymentId(req);
+
+    if (gatewayId) {
+      try {
+        const proof = await ADAPTER.verify(gatewayId);
+
+        //  Backing out and then paying anyway on the gateway's
+        //  own page is possible, so if it turns out to be paid,
+        //  treat it as paid rather than cancelling real money.
+        if (proof.paid) {
+          const found = await confirmPayment(null, gatewayId);
+          return res.redirect(
+            SITE_URL + '/checkout.html?tran=' + encodeURIComponent(found.tranId || '')
+          );
+        }
+
+        if (proof.tranId) tranId = proof.tranId;
+      } catch (err) {
+        console.error('cancel lookup failed:', err.message);
+      }
+    }
+  }
 
   if (tranId) {
     await db.from('payments')
@@ -405,7 +444,15 @@ async function handleStopped(req, res, newStatus) {
       .eq('status', 'initiated');
   }
 
-  res.redirect(SITE_URL + '/checkout.html?tran=' + encodeURIComponent(tranId || ''));
+  //  If we still cannot say which order this was, do NOT send
+  //  them to a bare checkout page — it would say "No batch was
+  //  chosen", which is a frightening thing to read straight
+  //  after paying. Say plainly that we could not match it.
+  if (!tranId) {
+    return res.redirect(SITE_URL + '/checkout.html?unmatched=1');
+  }
+
+  res.redirect(SITE_URL + '/checkout.html?tran=' + encodeURIComponent(tranId));
 }
 
 app.post('/api/payment/fail', (req, res) => handleStopped(req, res, 'failed'));

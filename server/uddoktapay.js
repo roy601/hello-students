@@ -130,12 +130,27 @@ async function verify(invoiceId) {
     return { paid: false, why: data?.message || state || 'unknown' };
   }
 
+  //  Their docs describe metadata as "string/JSON", and it does
+  //  come back both ways depending on the version. Read it as
+  //  an object OR as a JSON string, because if this comes out
+  //  undefined we lose the only link back to our own order.
+  let meta = data.metadata;
+  if (typeof meta === 'string') {
+    try { meta = JSON.parse(meta); } catch { meta = {}; }
+  }
+  if (!meta || typeof meta !== 'object') meta = {};
+
   return {
     paid: true,
     //  amount comes back as a decimal string like "100.00"
     amount: Number(data.amount),
-    tranId: data.metadata?.tran_id || null,
-    reference: data.transaction_id || String(invoiceId),
+    tranId: meta.tran_id || null,
+    //  The INVOICE id, not the bank transaction id: this is the
+    //  handle the gateway keeps sending us, so it is the one
+    //  worth storing and looking up by.
+    reference: String(invoiceId),
+    //  the bank/wallet reference, for the receipt
+    transactionId: data.transaction_id || null,
     method: data.payment_method || null,
     sender: data.sender_number || null,
   };
